@@ -1,0 +1,681 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+    font-size: 0.95rem; /* ~15.2px default for enhanced readability across all views */
+    line-height: 1.5;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Enhanced font sizing for readability across menus, buttons, labels, textboxes, comboboxes, datagrids, forms, dialogs */
+.text-\[9px\] { font-size: 0.72rem !important; }
+.text-\[10px\] { font-size: 0.76rem !important; }
+.text-\[11px\] { font-size: 0.82rem !important; }
+.text-xs { font-size: 0.88rem !important; }
+.text-sm { font-size: 0.98rem !important; }
+.text-base { font-size: 1.08rem !important; }
+
+/* Print page setup for A4 and A5 sizes */
+@page {
+  size: auto;
+  margin: 8mm;
+}
+
+/* Custom Scrollbar - highly responsive and visible across all platforms */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.7);
+}
+
+/* Light Theme Scrollbar adjustment */
+.theme-light .custom-scrollbar {
+  scrollbar-color: rgba(100, 116, 139, 0.5) transparent;
+}
+
+.theme-light .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.6);
+}
+
+.theme-light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+}
+
+.theme-light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.8);
+}
+
+/* High Contrast Input Fields Project-Wide */
+input, textarea, select, [contenteditable="true"] {
+  font-size: 0.95rem !important;
+}
+
+/* ==========================================================================
+   THEME STYLING ENGINE: COMPLETE LIGHT & DARK MODE SUPPORT
+   ========================================================================== */
+
+/* Dark Theme (Default & .theme-dark) */
+:root,
+body,
+.theme-dark,
+.theme-dark body,
+.theme-dark main,
+.theme-dark #root {
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+.theme-dark {
+  color-scheme: dark;
+}
+
+/* Dark mode typography defaults */
+.theme-dark h1,
+.theme-dark h2,
+.theme-dark h3,
+.theme-dark h4,
+.theme-dark h5,
+.theme-dark h6 {
+  color: #ffffff;
+}
+
+/* Fix dark text classes inside Dark Mode so nothing is black-on-black */
+.theme-dark :not(#printable-area):not(#printable-area *) > .text-slate-900,
+.theme-dark :not(#printable-area):not(#printable-area *) > .text-slate-800,
+body:not(.theme-light) :not(#printable-area):not(#printable-area *) > .text-slate-900,
+body:not(.theme-light) :not(#printable-area):not(#printable-area *) > .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+/* Dark theme input fields styling - strictly excluding printable document */
+body:not(.theme-light) :not(#printable-area):not(#printable-area *) > input,
+body:not(.theme-light) :not(#printable-area):not(#printable-area *) > textarea,
+body:not(.theme-light) :not(#printable-area):not(#printable-area *) > select,
+body:not(.theme-light) input:not(#printable-area *),
+body:not(.theme-light) textarea:not(#printable-area *),
+body:not(.theme-light) select:not(#printable-area *),
+body:not(.theme-light) [contenteditable="true"]:not(#printable-area *),
+.theme-dark input:not(#printable-area *),
+.theme-dark textarea:not(#printable-area *),
+.theme-dark select:not(#printable-area *),
+.theme-dark [contenteditable="true"]:not(#printable-area *) {
+  color: #ffffff !important;
+  background-color: #020617 !important;
+  border-color: #334155 !important;
+}
+
+body:not(.theme-light) select:not(#printable-area *) option,
+.theme-dark select:not(#printable-area *) option {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+}
+
+body:not(.theme-light) input:not(#printable-area *)::placeholder,
+body:not(.theme-light) textarea:not(#printable-area *)::placeholder,
+.theme-dark input:not(#printable-area *)::placeholder,
+.theme-dark textarea:not(#printable-area *)::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES (.theme-light on root or body)
+   ========================================================================== */
+.theme-light {
+  color-scheme: light;
+}
+
+.theme-light,
+.theme-light body,
+.theme-light main,
+.theme-light #root {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Backgrounds in light mode (including all slate opacity variants) */
+.theme-light [class*="bg-slate-950"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.theme-light [class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light [class*="bg-slate-800"] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.theme-light [class*="bg-slate-700"] {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Colored containers, tinted buttons & badges in light mode with high contrast */
+.theme-light [class*="bg-emerald-950"],
+.theme-light [class*="bg-emerald-900"],
+.theme-light button[class*="bg-emerald-950"],
+.theme-light button[class*="bg-emerald-900"] {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #6ee7b7 !important;
+}
+.theme-light [class*="bg-emerald-950"] *,
+.theme-light [class*="bg-emerald-900"] *,
+.theme-light button[class*="bg-emerald-950"] *,
+.theme-light button[class*="bg-emerald-900"] * {
+  color: #065f46 !important;
+}
+
+.theme-light [class*="bg-sky-950"],
+.theme-light [class*="bg-sky-900"],
+.theme-light button[class*="bg-sky-950"],
+.theme-light button[class*="bg-sky-900"] {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+  border-color: #7dd3fc !important;
+}
+.theme-light [class*="bg-sky-950"] *,
+.theme-light [class*="bg-sky-900"] *,
+.theme-light button[class*="bg-sky-950"] *,
+.theme-light button[class*="bg-sky-900"] * {
+  color: #0369a1 !important;
+}
+
+.theme-light [class*="bg-teal-950"],
+.theme-light [class*="bg-teal-900"],
+.theme-light button[class*="bg-teal-950"] {
+  background-color: #f0fdfa !important;
+  color: #0f766e !important;
+  border-color: #5eead4 !important;
+}
+.theme-light [class*="bg-teal-950"] *,
+.theme-light button[class*="bg-teal-950"] * {
+  color: #0f766e !important;
+}
+
+.theme-light [class*="bg-blue-950"],
+.theme-light [class*="bg-blue-900"],
+.theme-light button[class*="bg-blue-950"],
+.theme-light button[class*="bg-blue-900"] {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #93c5fd !important;
+}
+.theme-light [class*="bg-blue-950"] *,
+.theme-light [class*="bg-blue-900"] *,
+.theme-light button[class*="bg-blue-950"] *,
+.theme-light button[class*="bg-blue-900"] * {
+  color: #1d4ed8 !important;
+}
+
+.theme-light [class*="bg-amber-950"],
+.theme-light [class*="bg-amber-900"],
+.theme-light button[class*="bg-amber-950"],
+.theme-light button[class*="bg-amber-900"],
+.theme-light button[class*="bg-amber-600"] {
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+  border-color: #fcd34d !important;
+}
+.theme-light [class*="bg-amber-950"] *,
+.theme-light [class*="bg-amber-900"] *,
+.theme-light button[class*="bg-amber-950"] *,
+.theme-light button[class*="bg-amber-900"] *,
+.theme-light button[class*="bg-amber-600"] * {
+  color: #92400e !important;
+}
+
+.theme-light [class*="bg-rose-950"],
+.theme-light [class*="bg-rose-900"],
+.theme-light button[class*="bg-rose-950"],
+.theme-light button[class*="bg-rose-900"] {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border-color: #fda4af !important;
+}
+.theme-light [class*="bg-rose-950"] *,
+.theme-light [class*="bg-rose-900"] *,
+.theme-light button[class*="bg-rose-950"] *,
+.theme-light button[class*="bg-rose-900"] * {
+  color: #be123c !important;
+}
+
+.theme-light [class*="bg-purple-950"],
+.theme-light [class*="bg-purple-900"],
+.theme-light button[class*="bg-purple-950"],
+.theme-light button[class*="bg-purple-900"] {
+  background-color: #faf5ff !important;
+  color: #6b21a8 !important;
+  border-color: #d8b4fe !important;
+}
+.theme-light [class*="bg-purple-950"] *,
+.theme-light [class*="bg-purple-900"] *,
+.theme-light button[class*="bg-purple-950"] *,
+.theme-light button[class*="bg-purple-900"] * {
+  color: #6b21a8 !important;
+}
+
+.theme-light [class*="bg-cyan-950"],
+.theme-light [class*="bg-cyan-900"],
+.theme-light button[class*="bg-cyan-950"],
+.theme-light button[class*="bg-cyan-900"] {
+  background-color: #ecfeff !important;
+  color: #0e7490 !important;
+  border-color: #67e8f9 !important;
+}
+.theme-light [class*="bg-cyan-950"] *,
+.theme-light [class*="bg-cyan-900"] *,
+.theme-light button[class*="bg-cyan-950"] *,
+.theme-light button[class*="bg-cyan-900"] * {
+  color: #0e7490 !important;
+}
+
+/* Borders in light mode */
+.theme-light [class*="border-slate-800"],
+.theme-light [class*="border-slate-700"],
+.theme-light [class*="border-slate-900"] {
+  border-color: #cbd5e1 !important;
+}
+
+/* Text color overrides in light mode */
+.theme-light .text-slate-100,
+.theme-light .text-slate-200,
+.theme-light .text-slate-300 {
+  color: #0f172a !important;
+}
+
+.theme-light .text-slate-400 {
+  color: #334155 !important;
+}
+
+.theme-light .text-slate-500 {
+  color: #475569 !important;
+}
+
+.theme-light .text-emerald-400,
+.theme-light .text-emerald-300,
+.theme-light .text-emerald-200 {
+  color: #047857 !important;
+}
+
+.theme-light .text-rose-400,
+.theme-light .text-rose-300,
+.theme-light .text-rose-200 {
+  color: #be123c !important;
+}
+
+.theme-light .text-sky-400,
+.theme-light .text-sky-300,
+.theme-light .text-sky-200 {
+  color: #0284c7 !important;
+}
+
+.theme-light .text-cyan-400,
+.theme-light .text-cyan-300,
+.theme-light .text-cyan-200 {
+  color: #0891b2 !important;
+}
+
+.theme-light .text-purple-400,
+.theme-light .text-purple-300,
+.theme-light .text-purple-200 {
+  color: #7e22ce !important;
+}
+
+.theme-light .text-amber-400,
+.theme-light .text-amber-300,
+.theme-light .text-amber-200 {
+  color: #b45309 !important;
+}
+
+.theme-light .text-blue-400,
+.theme-light .text-blue-300,
+.theme-light .text-blue-200 {
+  color: #1d4ed8 !important;
+}
+
+/* Universal text-white override for light mode (except solid action buttons) */
+.theme-light .text-white {
+  color: #0f172a !important;
+}
+
+/* Logo Title high-contrast guarantees */
+.theme-light .logo-title {
+  color: #0b2545 !important;
+}
+
+.theme-dark .logo-title,
+body:not(.theme-light) .logo-title {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   BUTTON TEXT CONTRAST GUARANTEE (CRUCIAL FOR VISIBILITY)
+   Only solid saturated action buttons MUST retain pure white text!
+   Tinted / outline buttons retain their high contrast colors.
+   ========================================================================== */
+button.bg-emerald-600,
+button.bg-emerald-500,
+button.bg-emerald-700,
+button.bg-teal-600,
+button.bg-teal-500,
+button.bg-blue-600,
+button.bg-blue-500,
+button.bg-indigo-600,
+button.bg-indigo-500,
+button.bg-purple-600,
+button.bg-rose-600,
+button.bg-rose-500,
+button.bg-sky-600,
+button.bg-cyan-600,
+button[class*="bg-emerald-600"],
+button[class*="bg-emerald-500"],
+button[class*="bg-emerald-700"],
+button[class*="bg-teal-600"],
+button[class*="bg-blue-600"],
+button[class*="bg-indigo-600"],
+button[class*="bg-purple-600"],
+button[class*="bg-rose-600"],
+button[class*="bg-sky-600"],
+button[class*="bg-cyan-600"],
+button[class*="bg-gradient-to"],
+a[class*="bg-emerald-600"],
+a[class*="bg-teal-600"],
+a[class*="bg-blue-600"],
+a[class*="bg-rose-600"],
+a[class*="bg-indigo-600"],
+.theme-light button[class*="bg-emerald-600"],
+.theme-light button[class*="bg-emerald-500"],
+.theme-light button[class*="bg-emerald-700"],
+.theme-light button[class*="bg-teal-600"],
+.theme-light button[class*="bg-blue-600"],
+.theme-light button[class*="bg-indigo-600"],
+.theme-light button[class*="bg-purple-600"],
+.theme-light button[class*="bg-rose-600"],
+.theme-light button[class*="bg-sky-600"],
+.theme-light button[class*="bg-cyan-600"],
+.theme-light button[class*="bg-gradient-to"] {
+  color: #ffffff !important;
+}
+
+button[class*="bg-emerald-600"] *,
+button[class*="bg-emerald-500"] *,
+button[class*="bg-emerald-700"] *,
+button[class*="bg-teal-600"] *,
+button[class*="bg-blue-600"] *,
+button[class*="bg-indigo-600"] *,
+button[class*="bg-purple-600"] *,
+button[class*="bg-rose-600"] *,
+button[class*="bg-sky-600"] *,
+button[class*="bg-cyan-600"] *,
+button[class*="bg-gradient-to"] *,
+a[class*="bg-emerald-600"] *,
+a[class*="bg-teal-600"] *,
+a[class*="bg-blue-600"] *,
+a[class*="bg-rose-600"] *,
+a[class*="bg-indigo-600"] *,
+.theme-light button[class*="bg-emerald-600"] *,
+.theme-light button[class*="bg-emerald-500"] *,
+.theme-light button[class*="bg-emerald-700"] *,
+.theme-light button[class*="bg-teal-600"] *,
+.theme-light button[class*="bg-blue-600"] *,
+.theme-light button[class*="bg-indigo-600"] *,
+.theme-light button[class*="bg-purple-600"] *,
+.theme-light button[class*="bg-rose-600"] *,
+.theme-light button[class*="bg-sky-600"] *,
+.theme-light button[class*="bg-cyan-600"] *,
+.theme-light button[class*="bg-gradient-to"] * {
+  color: #ffffff !important;
+}
+
+/* Secondary / Slate Buttons in Light Mode */
+.theme-light button[class*="bg-slate-800"],
+.theme-light button[class*="bg-slate-900"],
+.theme-light button[class*="bg-slate-700"],
+.theme-light a[class*="bg-slate-800"],
+.theme-light a[class*="bg-slate-900"] {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-light button[class*="bg-slate-800"] *,
+.theme-light button[class*="bg-slate-900"] *,
+.theme-light button[class*="bg-slate-700"] *,
+.theme-light a[class*="bg-slate-800"] *,
+.theme-light a[class*="bg-slate-900"] * {
+  color: #0f172a !important;
+}
+
+/* Preserve accent icon colors inside secondary buttons in light mode */
+.theme-light button[class*="bg-slate-"] .text-emerald-400,
+.theme-light button[class*="bg-slate-"] .text-emerald-300 {
+  color: #047857 !important;
+}
+
+.theme-light button[class*="bg-slate-"] .text-rose-400,
+.theme-light button[class*="bg-slate-"] .text-rose-300 {
+  color: #be123c !important;
+}
+
+.theme-light button[class*="bg-slate-"] .text-amber-400,
+.theme-light button[class*="bg-slate-"] .text-amber-300 {
+  color: #b45309 !important;
+}
+
+.theme-light button[class*="bg-slate-"] .text-sky-400,
+.theme-light button[class*="bg-slate-"] .text-sky-300 {
+  color: #0284c7 !important;
+}
+
+/* Secondary / Slate Buttons in Dark Mode */
+.theme-dark button[class*="bg-slate-800"],
+.theme-dark button[class*="bg-slate-900"],
+.theme-dark button[class*="bg-slate-700"],
+body:not(.theme-light) button[class*="bg-slate-800"],
+body:not(.theme-light) button[class*="bg-slate-900"],
+body:not(.theme-light) button[class*="bg-slate-700"] {
+  color: #f8fafc !important;
+}
+
+.theme-dark button[class*="bg-slate-800"] *,
+.theme-dark button[class*="bg-slate-900"] *,
+.theme-dark button[class*="bg-slate-700"] *,
+body:not(.theme-light) button[class*="bg-slate-800"] *,
+body:not(.theme-light) button[class*="bg-slate-900"] *,
+body:not(.theme-light) button[class*="bg-slate-700"] * {
+  color: #f8fafc !important;
+}
+
+/* Light Theme Input Controls (TextBox, RichTextBox, ComboBox, Select) */
+.theme-light input,
+.theme-light textarea,
+.theme-light select,
+.theme-light [contenteditable="true"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-light input.text-white,
+.theme-light textarea.text-white,
+.theme-light select.text-white,
+.theme-light input.text-emerald-400,
+.theme-light textarea.text-emerald-400,
+.theme-light input.text-slate-100,
+.theme-light input.text-slate-200,
+.theme-light input.text-slate-300 {
+  color: #0f172a !important;
+}
+
+.theme-light input:focus,
+.theme-light textarea:focus,
+.theme-light select:focus {
+  border-color: #059669 !important;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2) !important;
+  outline: none !important;
+}
+
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+.theme-light input:disabled,
+.theme-light textarea:disabled,
+.theme-light select:disabled {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  cursor: not-allowed !important;
+}
+
+.theme-light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* DataGrid & Tables in Light Mode */
+.theme-light table {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.theme-light th {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-light td {
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.theme-light tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Modal Dialog Backdrop in Light Mode */
+.theme-light .fixed.inset-0.bg-black\/80,
+.theme-light .fixed.inset-0.bg-black\/70,
+.theme-light .fixed.inset-0.bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+/* Printable Document Paper Protection */
+#printable-area {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+#printable-area * {
+  color: inherit;
+}
+
+#printable-area .text-slate-900,
+#printable-area .text-slate-800 {
+  color: #0f172a !important;
+}
+
+#printable-area .text-slate-600,
+#printable-area .text-slate-500 {
+  color: #475569 !important;
+}
+
+/* Smooth, subtle hover rules for modern professional medical interface */
+button,
+a,
+select,
+input,
+[role="button"],
+tr,
+.pro-card,
+.subtle-hover {
+  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Universal non-aggressive hover effect: keeps background color, adds 2-4% brightness highlight + soft shadow + border definition */
+button:hover,
+[role="button"]:hover,
+a:hover {
+  filter: brightness(1.04);
+}
+
+.theme-light button:hover,
+.theme-light [role="button"]:hover,
+.theme-light a:hover {
+  filter: brightness(0.97);
+}
+
+/* Card glass / polish effect */
+.pro-card {
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pro-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  filter: brightness(1.02);
+}
+
+.theme-light .pro-card:hover {
+  filter: brightness(0.98);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
