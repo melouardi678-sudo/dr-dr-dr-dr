@@ -1,0 +1,6 @@
+{
+  "name": "E-ACCESS WEB",
+  "description": "Logiciel de gestion de cabinet médical professionnel avec dossier patient, agenda, consultations, ordonnances, facturation, stock et licence - E-ACCESS WEB Medical Software Solutions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
