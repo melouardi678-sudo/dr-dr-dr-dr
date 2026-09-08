@@ -16,22 +16,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci
 
       - name: Build Web Assets
         run: npm run build
-        continue-on-error: true
 
       - name: Build Electron App (DMG Only)
-        run: npx electron-builder --mac dmg -c.mac.identity=null -c.generateUpdatesFilesForAllChannels=false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --mac dmg --universal --publish never
 
       - name: Upload DMG Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediCab-macOS-Installer
-          path: dist/*.dmg
+          path: release/*.dmg
+          if-no-files-found: error
