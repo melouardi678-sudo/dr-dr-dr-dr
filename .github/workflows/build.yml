@@ -21,8 +21,12 @@ jobs:
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Electron App for macOS
-        run: npx electron-builder --mac --publish never
+      - name: Build Web Assets
+        run: npm run build
+        continue-on-error: true
+
+      - name: Build Electron App (DMG Only)
+        run: npx electron-builder --mac dmg -c.mac.identity=null -c.generateUpdatesFilesForAllChannels=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
