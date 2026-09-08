@@ -10,7 +10,11 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -25,15 +29,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Universal macOS installer
-        run: npx electron-builder --mac dmg --universal --publish never
+      - name: Build macOS installer for selected architecture
+        run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
-          name: medicab-macos-universal
-          path: |
-            release/*.dmg
+          name: medicab-macos-${{ matrix.arch }}
+          path: release/*.dmg
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -43,3 +46,4 @@ jobs:
           generate_release_notes: true
           files: |
             release/*.dmg
+
