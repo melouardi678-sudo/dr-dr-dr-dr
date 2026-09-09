@@ -39,6 +39,7 @@ import {
   saveNetworkConfig,
   testServerConnection,
   fetchServerNetworkInfo,
+  getLocalServerPort,
   getWindowsFirewallPowershellCommand,
   getWindowsStaticIpPowershellCommand,
   getMacTerminalCurlCommand,
@@ -85,7 +86,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
 
   // Load server details if in server or local mode
   useEffect(() => {
-    fetchServerNetworkInfo('127.0.0.1', config.serverPort || 3000).then((info) => {
+    fetchServerNetworkInfo('127.0.0.1', getLocalServerPort(config.serverPort || 3000)).then((info) => {
       if (info) {
         setServerInfo(info);
       }
@@ -107,7 +108,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
       syncClient.connect();
     } else if (newMode === 'server') {
       syncClient.connect();
-      fetchServerNetworkInfo('127.0.0.1', updated.serverPort).then((inf) => inf && setServerInfo(inf));
+      fetchServerNetworkInfo('127.0.0.1', getLocalServerPort(updated.serverPort)).then((inf) => inf && setServerInfo(inf));
     } else {
       syncClient.disconnect();
     }
@@ -137,7 +138,9 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
     setTestResult(null);
 
     const targetIp = config.mode === 'client' ? config.serverIp : '127.0.0.1';
-    const targetPort = config.serverPort || 3000;
+    const targetPort = config.mode === 'client'
+      ? (config.serverPort || 3000)
+      : getLocalServerPort(config.serverPort || 3000);
 
     const res = await testServerConnection(targetIp, targetPort);
     setTestingConnection(false);

@@ -63,8 +63,19 @@ export function getBaseApiUrl(config?: NetworkConfig): string {
     const port = cfg.serverPort || 3000;
     return `http://${cleanIp}:${port}`;
   }
-  // Local or Server mode uses the local server instance
-  return window.location.origin.includes('3000') ? window.location.origin : 'http://127.0.0.1:3000';
+  // Local or Server mode uses the actual server port, which may differ from 3000.
+  if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+    return window.location.origin;
+  }
+  return 'http://127.0.0.1:3000';
+}
+
+export function getLocalServerPort(fallbackPort = 3000): number {
+  if (typeof window !== 'undefined') {
+    const port = Number(window.location.port);
+    if (port > 0) return port;
+  }
+  return fallbackPort;
 }
 
 export function getWebSocketUrl(config?: NetworkConfig): string {
