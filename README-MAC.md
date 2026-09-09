@@ -32,7 +32,13 @@ git push origin v1.0.1
 
 سيقوم GitHub Actions تلقائياً ببناء نسخة **Universal** واحدة تعمل على أجهزة Apple Silicon، بما فيها M5، وأجهزة Intel، ثم يرفق ملفي `.dmg` و`.zip` في صفحة **Releases**. يمكن أيضاً تشغيل workflow يدوياً من تبويب **Actions** باختيار **Build macOS installer** ثم **Run workflow**.
 
-> النسخة غير موقعة بشهادة Apple Developer حالياً. عند أول تشغيل، استخدم **Open** من قائمة الزر الأيمن، أو نفّذ أمر `xattr` الموضح أدناه.
+> إذا لم تتم إضافة أسرار Apple إلى GitHub، فستكون النسخة غير موقعة. عندها قد يمنع Chrome التنزيل أو يمنع macOS التشغيل.
+
+### التوقيع والتوثيق عبر GitHub
+
+أضف الأسرار التالية إلى إعدادات المستودع في GitHub: `MACOS_CERTIFICATE_BASE64`، و`MACOS_CERTIFICATE_PASSWORD`، و`APPLE_ID`، و`APPLE_APP_SPECIFIC_PASSWORD`، و`APPLE_TEAM_ID`. يجب أن تكون الشهادة من Apple Developer بصيغة `.p12` مشفّرة Base64. بعد ذلك أعد إنشاء الإصدار من خلال GitHub Actions.
+
+التوقيع والتوثيق هما الطريقة الصحيحة لتقليل تحذير الملف الخطير. لا ترفع شهادة Apple أو كلمة مرورها إلى المستودع.
 
 إذا أردت إنشاء ملف تثبيت ماك احترافي بصيغة **DMG** (سحب وإفلات في مجلد Applications):
 

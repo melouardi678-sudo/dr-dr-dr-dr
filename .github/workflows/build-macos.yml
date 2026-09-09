@@ -30,13 +30,19 @@ jobs:
         run: npm ci
 
       - name: Build macOS installer for selected architecture
-        run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
+        run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+        env:
+          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
           name: medicab-macos-${{ matrix.arch }}
-          path: release/*.dmg
+          path: release/*.{dmg,zip}
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -45,5 +51,5 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            release/*.dmg
+            release/*.{dmg,zip}
 

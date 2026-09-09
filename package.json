@@ -54,9 +54,8 @@
           "arch": ["universal"]
         }
       ],
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false,
-      "identity": null
+      "hardenedRuntime": true,
+      "gatekeeperAssess": true
     },
     "dmg": {
       "title": "MediCab Medical Cabinet",
@@ -80,6 +79,7 @@
     },
     "win": {
       "icon": "build/icon.ico",
+      "publisherName": "E-ACCESS WEB Medical Software Solutions",
       "target": [
         {
           "target": "nsis",
