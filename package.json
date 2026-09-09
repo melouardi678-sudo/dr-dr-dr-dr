@@ -4,7 +4,7 @@
   "description": "Logiciel de gestion de cabinet médical professionnel",
   "author": "E-ACCESS WEB Medical Software Solutions",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "commonjs",
   "main": "electron-main.js",
   "scripts": {
@@ -44,16 +44,7 @@
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.medical",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": ["universal"]
-        },
-        {
-          "target": "zip",
-          "arch": ["universal"]
-        }
-      ],
+      "target": ["dmg", "zip"],
       "hardenedRuntime": true,
       "gatekeeperAssess": true
     },
@@ -79,7 +70,6 @@
     },
     "win": {
       "icon": "build/icon.ico",
-      "publisherName": "E-ACCESS WEB Medical Software Solutions",
       "target": [
         {
           "target": "nsis",
