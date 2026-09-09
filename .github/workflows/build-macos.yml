@@ -35,11 +35,7 @@ jobs:
       - name: Build macOS installer for selected architecture
         run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
         env:
-          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
