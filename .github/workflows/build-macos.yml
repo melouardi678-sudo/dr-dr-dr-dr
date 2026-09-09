@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build web assets
+        run: npm run build
+
       - name: Build macOS installer for selected architecture
         run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
         env:
