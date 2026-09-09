@@ -41,7 +41,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: medicab-macos-${{ matrix.arch }}
-          path: release/*.{dmg,zip}
+          path: |
+            release/*.dmg
+            release/*.zip
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -50,5 +52,6 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            release/*.{dmg,zip}
+            release/*.dmg
+            release/*.zip
 
