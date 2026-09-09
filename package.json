@@ -4,7 +4,7 @@
   "description": "Logiciel de gestion de cabinet médical professionnel",
   "author": "E-ACCESS WEB Medical Software Solutions",
   "private": true,
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "commonjs",
   "main": "electron-main.js",
   "scripts": {
@@ -42,7 +42,7 @@
       "package.json"
     ],
     "mac": {
-      "icon": "build/icon.icns",
+      "icon": "public/icon.icns",
       "category": "public.app-category.medical",
       "target": [
         "dmg",
@@ -53,7 +53,7 @@
     },
     "dmg": {
       "title": "MediCab Medical Cabinet",
-      "icon": "build/icon.png",
+      "icon": "public/icon.png",
       "contents": [
         {
           "x": 130,
@@ -72,7 +72,7 @@
       }
     },
     "win": {
-      "icon": "build/icon.ico",
+      "icon": "public/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -90,9 +90,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "MediCab Medical Cabinet",
-      "installerIcon": "build/installerHeaderIcon.ico",
-      "uninstallerIcon": "build/uninstallerIcon.ico",
-      "installerHeaderIcon": "build/installerHeaderIcon.ico"
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico"
     }
   },
   "dependencies": {
