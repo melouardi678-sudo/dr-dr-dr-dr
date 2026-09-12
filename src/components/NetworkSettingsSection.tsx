@@ -133,6 +133,18 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
     handleTestConnection();
   };
 
+  const getEffectiveServerPort = () => (
+    config.mode === 'client'
+      ? (config.serverPort || 3000)
+      : (serverInfo?.port || getLocalServerPort(config.serverPort || 3000))
+  );
+
+  const getEffectiveServerIp = () => (
+    config.mode === 'client'
+      ? (config.serverIp || '127.0.0.1')
+      : (serverInfo?.primaryIp || '127.0.0.1')
+  );
+
   const handleTestConnection = async () => {
     setTestingConnection(true);
     setTestResult(null);
@@ -240,7 +252,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
   };
 
   const copyBonjourUrl = () => {
-    const url = serverInfo?.bonjourUrl || getMacBonjourUrl(serverInfo?.hostname, config.serverPort || 3000);
+    const url = serverInfo?.bonjourUrl || getMacBonjourUrl(serverInfo?.hostname, getEffectiveServerPort());
     navigator.clipboard.writeText(url);
     setCopiedBonjour(true);
     setTimeout(() => setCopiedBonjour(false), 2500);
@@ -248,8 +260,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
   };
 
   const copyMacCurlCmd = () => {
-    const target = config.serverIp || serverInfo?.primaryIp || '192.168.1.100';
-    const cmd = getMacTerminalCurlCommand(target, config.serverPort || 3000);
+    const cmd = getMacTerminalCurlCommand(getEffectiveServerIp(), getEffectiveServerPort());
     navigator.clipboard.writeText(cmd);
     setCopiedMacCurl(true);
     setTimeout(() => setCopiedMacCurl(false), 2500);
@@ -257,8 +268,8 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
   };
 
   const getAssistantWebUrl = () => {
-    const ip = serverInfo?.primaryIp || '192.168.1.100';
-    const port = config.serverPort || 3000;
+    const ip = getEffectiveServerIp();
+    const port = getEffectiveServerPort();
     return `http://${ip}:${port}`;
   };
 
@@ -606,7 +617,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
                     <input
                       type="text"
                       readOnly
-                      value={serverInfo?.bonjourUrl || `http://${(serverInfo?.hostname || 'MacBook-Medecin').replace(/\.local$/i, '')}.local:${config.serverPort || 3000}`}
+                      value={serverInfo?.bonjourUrl || `http://${(serverInfo?.hostname || 'MacBook-Medecin').replace(/\.local$/i, '')}.local:${getEffectiveServerPort()}`}
                       className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sky-300 font-mono font-bold text-xs select-all shadow-inner"
                     />
                     <button
@@ -1476,13 +1487,13 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
                         <div>
                           <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Option A : Lien par Adresse IP</span>
                           <span className="font-mono text-xs text-emerald-400 font-bold select-all">
-                            http://{config.serverIp || '192.168.1.100'}:{config.serverPort || 3000}
+                            http://{getEffectiveServerIp()}:{getEffectiveServerPort()}
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            const url = `http://${config.serverIp || '192.168.1.100'}:${config.serverPort || 3000}`;
+                            const url = `http://${getEffectiveServerIp()}:${getEffectiveServerPort()}`;
                             navigator.clipboard.writeText(url);
                             if (onNotify) onNotify('Lien IP copié !', 'info');
                           }}
@@ -1556,7 +1567,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
                         </button>
                       </div>
                       <div className="p-2.5 bg-slate-950 rounded text-slate-200 font-mono text-xs select-all border border-slate-800">
-                        curl -I http://{config.serverIp || '192.168.1.100'}:{config.serverPort || 3000}/api/health
+                        curl -I http://{getEffectiveServerIp()}:{getEffectiveServerPort()}/api/health
                       </div>
                       <p className="text-[11px] text-slate-400 leading-relaxed">
                         Ouvrez le <strong>Terminal</strong> sur le Mac de la secrétaire (raccourci : <kbd className="px-1 bg-slate-800 rounded text-white font-mono">Cmd + Espace</kbd> &gt; tapez <em>Terminal</em> &gt; Entrée), collez la commande et appuyez sur Entrée.

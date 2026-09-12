@@ -4,7 +4,7 @@
   "description": "Logiciel de gestion de cabinet médical professionnel",
   "author": "E-ACCESS WEB Medical Software Solutions",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "type": "commonjs",
   "main": "electron-main.js",
   "scripts": {

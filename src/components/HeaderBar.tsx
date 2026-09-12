@@ -2,7 +2,7 @@ import React from 'react';
 import { Logo } from './Logo';
 import {
   ShieldCheck,
-  KeyRound,
+  ShieldAlert,
   LogOut,
   Moon,
   Sun,
@@ -11,18 +11,15 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-import { AppUser, CabinetSettings, LicenseInfo } from '../types';
+import { AppUser, CabinetSettings } from '../types';
 import { LicenseStatus } from '../utils/license';
 import { t } from '../utils/translations';
 import { NetworkStatusBadge } from './NetworkStatusBadge';
 
 interface HeaderBarProps {
-  licenseInfo: LicenseInfo;
   licenseStatus: LicenseStatus;
   currentUser: AppUser;
   settings?: CabinetSettings;
-  onOpenActivation: () => void;
-  onOpenKeyGen: () => void;
   onOpenLogin: () => void;
   onOpenExeGuide?: () => void;
   onOpenAbout?: () => void;
@@ -35,12 +32,9 @@ interface HeaderBarProps {
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
-  licenseInfo,
   licenseStatus,
   currentUser,
   settings,
-  onOpenActivation,
-  onOpenKeyGen,
   onOpenNetwork,
   onLogout,
   theme,
@@ -126,31 +120,31 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </h2>
       </div>
 
-      {/* Right Controls: Network status, License status, Vendor KeyGen, Theme & Logout */}
+      {/* Right Controls: Network status, license status, theme & logout */}
       <div className="flex items-center space-x-2 shrink-0">
         {/* LAN Network Status Badge */}
         <NetworkStatusBadge onOpenNetworkSettings={onOpenNetwork} />
 
         {/* License status badge */}
         <div
-          className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-950/80 text-emerald-300 rounded-lg border border-emerald-700/60"
-          title={t('header_license_active')}
+          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border ${
+            licenseStatus.isExpired
+              ? 'bg-rose-950/80 text-rose-300 border-rose-700/60'
+              : licenseStatus.daysRemaining < 3
+              ? 'bg-amber-950/80 text-amber-300 border-amber-700/60'
+              : 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60'
+          }`}
+          title={licenseStatus.statusText || t('header_license_active')}
         >
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          {licenseStatus.isExpired ? (
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+          ) : licenseStatus.daysRemaining < 3 ? (
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+          ) : (
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          )}
           <span className="font-semibold text-[11px] hidden sm:inline">{licenseStatus.statusText}</span>
         </div>
-
-        {/* Vendor Key Generator Tool (only when activated and admin) */}
-        {currentUser.role === 'admin' && licenseInfo.isActivated && (
-          <button
-            onClick={onOpenKeyGen}
-            className="flex items-center space-x-1 px-2 py-1 bg-slate-800/80 text-slate-300 rounded-lg border border-slate-700/80 hover:border-slate-500/80 hover:brightness-105 text-[10px] transition-all duration-200"
-            title={t('header_keygen')}
-          >
-            <KeyRound className="w-3 h-3 text-amber-400" />
-            <span className="hidden md:inline font-semibold">{t('header_keygen')}</span>
-          </button>
-        )}
 
         {/* Dark / Light theme toggle */}
         <button

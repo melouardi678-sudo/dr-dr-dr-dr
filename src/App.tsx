@@ -8,7 +8,6 @@ import { Logo } from './components/Logo';
 import { HeaderBar } from './components/HeaderBar';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { ActivationModal } from './components/ActivationModal';
-import { KeyGeneratorModal } from './components/KeyGeneratorModal';
 import { LoginModal } from './components/LoginModal';
 import { AboutModal } from './components/AboutModal';
 import { PrintableDocument, PrintableDocType } from './components/PrintableDocument';
@@ -146,7 +145,6 @@ export default function App() {
 
   // Modal States
   const [isActivationOpen, setIsActivationOpen] = useState(false);
-  const [isKeyGenOpen, setIsKeyGenOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -282,6 +280,9 @@ export default function App() {
   useEffect(() => {
     const status = getLicenseStatus(licenseInfo);
     setLicenseStatus(status);
+    if (!licenseInfo.isActivated && status.daysRemaining <= 2) {
+      setIsActivationOpen(true);
+    }
   }, [licenseInfo]);
 
   // Persist handlers
@@ -426,12 +427,24 @@ export default function App() {
   // Full-screen Login screen when not authenticated
   if (!isAuthenticated) {
     return (
-      <LoginModal
-        isOpen={true}
-        isFullScreen={true}
-        currentUser={currentUser}
-        onSelectUser={handleSelectUser}
-      />
+      <>
+        <LoginModal
+          isOpen={true}
+          isFullScreen={true}
+          currentUser={currentUser}
+          onSelectUser={handleSelectUser}
+        />
+        {licenseStatus.isExpired && !licenseInfo.isActivated && (
+          <ActivationModal
+            isOpen={true}
+            onClose={() => setIsActivationOpen(false)}
+            licenseInfo={licenseInfo}
+            licenseStatus={licenseStatus}
+            onLicenseUpdated={setLicenseInfo}
+            isMandatoryBlock={true}
+          />
+        )}
+      </>
     );
   }
 
@@ -445,12 +458,9 @@ export default function App() {
     >
       {/* Top Windows EXE Title & Control Bar */}
       <HeaderBar
-        licenseInfo={licenseInfo}
         licenseStatus={licenseStatus}
         currentUser={currentUser}
         settings={settings}
-        onOpenActivation={() => setIsActivationOpen(true)}
-        onOpenKeyGen={() => setIsKeyGenOpen(true)}
         onOpenLogin={() => setIsLoginOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenNetwork={() => setIsNetworkModalOpen(true)}
@@ -703,16 +713,6 @@ export default function App() {
             setIsActivationOpen(false);
           }}
           isMandatoryBlock={licenseStatus.isExpired && !licenseInfo.isActivated}
-        />
-      )}
-
-      {/* Vendor License Key Generator Modal */}
-      {isKeyGenOpen && (
-        <KeyGeneratorModal
-          isOpen={isKeyGenOpen}
-          onClose={() => setIsKeyGenOpen(false)}
-          currentClientId={licenseInfo.clientId}
-          currentMachineId={licenseInfo.machineId}
         />
       )}
 
