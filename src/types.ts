@@ -82,6 +82,8 @@ export interface PrescriptionPrintSettings {
   showPatientName: boolean; // Afficher Nom et Prénom
   showDate: boolean; // Afficher la date
   showFooter: boolean; // Afficher le pied de page (signature & cachet)
+  showMedicationInstructions: boolean; // Afficher les consignes sous les médicaments
+  showPrescriptionNotes: boolean; // Afficher les recommandations de l'ordonnance
   paperSize: 'A4' | 'A5'; // Format par défaut
   customHeaderSpaceMm: number; // Marge supérieure en mm si en-tête désactivé
 }

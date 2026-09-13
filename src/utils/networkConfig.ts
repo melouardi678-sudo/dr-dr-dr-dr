@@ -108,7 +108,6 @@ export async function testServerConnection(
   try {
     const res = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
     });
     clearTimeout(timer);

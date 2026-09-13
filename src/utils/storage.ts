@@ -34,6 +34,8 @@ export const DEFAULT_PRESCRIPTION_PRINT_SETTINGS: PrescriptionPrintSettings = {
   showPatientName: true,
   showDate: true,
   showFooter: true,
+  showMedicationInstructions: true,
+  showPrescriptionNotes: true,
   paperSize: 'A4',
   customHeaderSpaceMm: 45,
 };

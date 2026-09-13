@@ -354,6 +354,32 @@ export const PrescriptionPrintSettingsSection: React.FC<PrescriptionPrintSetting
                   className="w-4 h-4 mt-0.5 accent-emerald-500 rounded cursor-pointer shrink-0"
                 />
               </label>
+
+              <label className="flex items-start justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                <div className="space-y-0.5 pr-2">
+                  <span className="font-bold text-white block">Afficher les consignes des médicaments</span>
+                  <p className="text-[11px] text-slate-400">Masque les lignes de conseil sous les médicaments lorsque cette option est désactivée.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={printOpt.showMedicationInstructions}
+                  onChange={() => handleToggle('showMedicationInstructions')}
+                  className="w-4 h-4 mt-0.5 accent-emerald-500 rounded cursor-pointer shrink-0"
+                />
+              </label>
+
+              <label className="flex items-start justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer transition">
+                <div className="space-y-0.5 pr-2">
+                  <span className="font-bold text-white block">Afficher les notes / recommandations</span>
+                  <p className="text-[11px] text-slate-400">Les notes vides restent toujours masquées sur la feuille imprimée.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={printOpt.showPrescriptionNotes}
+                  onChange={() => handleToggle('showPrescriptionNotes')}
+                  className="w-4 h-4 mt-0.5 accent-emerald-500 rounded cursor-pointer shrink-0"
+                />
+              </label>
             </div>
           </div>
 

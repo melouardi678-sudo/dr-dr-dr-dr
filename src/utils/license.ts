@@ -3,8 +3,6 @@ import { safeGetItem, safeSetItem, safeRemoveItem } from './safeStorage';
 
 const LICENSE_STORAGE_KEY = 'medicab_license_v1';
 const LAST_SEEN_KEY = '__eaccess_last_ts';
-const TRIAL_DURATION_DAYS = 7;
-const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * Generate a deterministic Machine ID based on browser/system attributes
@@ -99,15 +97,15 @@ export function verifyActivationCode(clientId: string, machineId: string, code: 
   return { isValid: false };
 }
 
-function createTrialLicense(machineId: string, clientId: string, installDate = new Date().toISOString()): LicenseInfo {
+function createPermanentLicense(machineId: string, clientId: string, installDate = new Date().toISOString()): LicenseInfo {
   return {
     machineId,
     clientId,
     cabinetName: 'Cabinet Médical',
     installDate,
-    trialDays: TRIAL_DURATION_DAYS,
-    isActivated: false,
-    licenseType: 'trial',
+    trialDays: 0,
+    isActivated: true,
+    licenseType: 'permanent',
   };
 }
 
@@ -120,7 +118,7 @@ export function loadLicenseInfo(): LicenseInfo {
 
   const rawMain = safeGetItem(LICENSE_STORAGE_KEY);
   if (!rawMain) {
-    const initial = createTrialLicense(machineId, clientId);
+    const initial = createPermanentLicense(machineId, clientId);
     saveLicenseInfo(initial);
     safeSetItem(LAST_SEEN_KEY, initial.installDate);
     return initial;
@@ -131,38 +129,19 @@ export function loadLicenseInfo(): LicenseInfo {
     data.machineId = machineId;
     data.clientId = clientId;
 
-    if (data.isActivated && data.activationCode) {
-      const verification = verifyActivationCode(clientId, machineId, data.activationCode);
-      if (!verification.isValid || verification.type !== 'permanent') {
-        data.isActivated = false;
-        data.licenseType = 'trial';
-        data.activationCode = undefined;
-      } else {
-        data.licenseType = 'permanent';
-      }
-    } else if (!data.isActivated || data.licenseType !== 'permanent') {
-      data.isActivated = false;
-      data.licenseType = 'trial';
-      data.trialDays = TRIAL_DURATION_DAYS;
-    }
+    data.isActivated = true;
+    data.licenseType = 'permanent';
+    data.trialDays = 0;
+    data.expiryDate = undefined;
 
     if (!data.installDate) {
       data.installDate = new Date().toISOString();
     }
 
-    const now = Date.now();
-    const lastSeen = Number(safeGetItem(LAST_SEEN_KEY) || 0);
-    if (lastSeen > now && !data.isActivated) {
-      data.installDate = new Date(lastSeen).toISOString();
-    }
-    if (now > lastSeen) {
-      safeSetItem(LAST_SEEN_KEY, String(now));
-    }
-
     saveLicenseInfo(data);
     return data;
   } catch (e) {
-    const reset = createTrialLicense(machineId, clientId);
+    const reset = createPermanentLicense(machineId, clientId);
     saveLicenseInfo(reset);
     safeSetItem(LAST_SEEN_KEY, reset.installDate);
     return reset;
@@ -187,28 +166,11 @@ export interface LicenseStatus {
 }
 
 export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
-  if (info.isActivated && info.licenseType === 'permanent') {
-    return {
-      isExpired: false,
-      daysRemaining: 9999,
-      hoursRemaining: 99999,
-      statusText: 'Licence Permanente Activée',
-    };
-  }
-
-  const elapsedMs = Math.max(0, Date.now() - new Date(info.installDate).getTime());
-  const remainingMs = Math.max(0, TRIAL_DURATION_MS - elapsedMs);
-  const isExpired = remainingMs <= 0;
-  const hoursRemaining = Math.ceil(remainingMs / (60 * 60 * 1000));
-  const daysRemaining = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
-
   return {
-    isExpired,
-    daysRemaining,
-    hoursRemaining,
-    statusText: isExpired
-      ? 'Essai expiré - Activation requise'
-      : `Version d'essai - ${daysRemaining} jour${daysRemaining === 1 ? '' : 's'} restant${daysRemaining === 1 ? '' : 's'}`,
+    isExpired: false,
+    daysRemaining: 9999,
+    hoursRemaining: 99999,
+    statusText: 'Licence Permanente Activée',
   };
 }
 

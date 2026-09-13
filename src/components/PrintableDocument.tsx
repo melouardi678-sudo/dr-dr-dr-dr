@@ -147,7 +147,7 @@ const EditableField: React.FC<{
   if (!isDirectEditMode) {
     return (
       <span className={className} dir={dir} style={{ color: '#0f172a', ...style }}>
-        {value || placeholder}
+        {value || (isDirectEditMode ? placeholder : '')}
       </span>
     );
   }
@@ -174,7 +174,7 @@ const EditableField: React.FC<{
       placeholder={placeholder}
       dir={dir}
       style={{ backgroundColor: 'transparent', color: '#0f172a', ...style }}
-      className={`${className} bg-transparent text-slate-900 border border-dashed border-cyan-500/50 hover:border-cyan-600 focus:border-cyan-700 focus:bg-cyan-50/30 rounded px-1 py-0.5 outline-none transition-colors max-w-full print:border-none print:bg-transparent print:p-0`}
+      className={`${className} bg-transparent text-slate-900 border border-dashed border-cyan-500/50 hover:border-cyan-600 focus:border-cyan-700 focus:bg-cyan-50/30 rounded px-1 py-0.5 outline-none transition-colors max-w-full print:border-none print:bg-transparent print:p-0 print:placeholder:text-transparent`}
     />
   );
 };
@@ -964,6 +964,26 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
                 <label className="flex items-center space-x-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 cursor-pointer hover:border-slate-700">
                   <input
                     type="checkbox"
+                    checked={printOpt.showMedicationInstructions}
+                    onChange={() => handleToggleOpt('showMedicationInstructions')}
+                    className="w-3.5 h-3.5 accent-emerald-500 rounded"
+                  />
+                  <span className="text-slate-200 font-medium">Consignes des médicaments</span>
+                </label>
+
+                <label className="flex items-center space-x-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 cursor-pointer hover:border-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={printOpt.showPrescriptionNotes}
+                    onChange={() => handleToggleOpt('showPrescriptionNotes')}
+                    className="w-3.5 h-3.5 accent-emerald-500 rounded"
+                  />
+                  <span className="text-slate-200 font-medium">Notes / recommandations</span>
+                </label>
+
+                <label className="flex items-center space-x-2 p-1.5 rounded-lg bg-slate-900 border border-slate-800 cursor-pointer hover:border-slate-700">
+                  <input
+                    type="checkbox"
                     checked={printOpt.showCabinetCoords}
                     onChange={() => handleToggleOpt('showCabinetCoords')}
                     className="w-3.5 h-3.5 accent-emerald-500 rounded"
@@ -1172,7 +1192,7 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
                   style={{ height: `${printOpt.customHeaderSpaceMm || 45}mm` }}
                   className="w-full border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-[10px] text-slate-400 italic mb-3 select-none print:border-none print:text-transparent"
                 >
-                  <span>[ Espace réservé à l'en-tête pré-imprimé : {printOpt.customHeaderSpaceMm || 45}mm ]</span>
+                  <span className="print:hidden">[ Espace réservé à l'en-tête pré-imprimé : {printOpt.customHeaderSpaceMm || 45}mm ]</span>
                 </div>
               ) : (
                 <div className={`border-b-2 ${themeClasses.borderAccent} pb-3 mb-4`}>
@@ -1370,15 +1390,17 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
                         </div>
 
                         {/* Instructions / Conseils */}
-                        <div className="pl-5 text-slate-500 italic text-[11px] flex items-center gap-1.5">
-                          <span className="not-italic text-slate-400">Conseil :</span>
-                          <EditableField
-                            value={item.instructions}
-                            onChange={(val) => handleUpdatePrescriptionItem(idx, 'instructions', val)}
-                            className="italic text-slate-600 flex-1"
-                            placeholder="Consignes particulières (ex: après les repas)..."
-                          />
-                        </div>
+                        {printOpt.showMedicationInstructions && item.instructions?.trim() && (
+                          <div className="pl-5 text-slate-500 italic text-[11px] flex items-center gap-1.5">
+                            <span className="not-italic text-slate-400">Conseil :</span>
+                            <EditableField
+                              value={item.instructions}
+                              onChange={(val) => handleUpdatePrescriptionItem(idx, 'instructions', val)}
+                              className="italic text-slate-600 flex-1"
+                              placeholder="Consignes particulières (ex: après les repas)..."
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -1396,7 +1418,8 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
                   </div>
 
                   {/* Notes / Recommendations Block */}
-                  <div className="p-2.5 bg-amber-50/90 rounded-lg border border-amber-200 text-xs text-amber-950 space-y-1">
+                  {printOpt.showPrescriptionNotes && editablePrescription.notes?.trim() && (
+                    <div className="p-2.5 bg-amber-50/90 rounded-lg border border-amber-200 text-xs text-amber-950 space-y-1">
                     <strong className="block text-[11px] uppercase tracking-wider text-amber-900">
                       Recommandations / Conseils diététiques :
                     </strong>
@@ -1408,7 +1431,8 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
                       multiline
                       rows={2}
                     />
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
