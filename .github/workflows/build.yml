@@ -1,6 +1,7 @@
 name: Build MediCab macOS App
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -10,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, x64]
+        arch: [arm64, x64, universal]
     runs-on: macos-latest
 
     steps:
@@ -21,6 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install Dependencies
         run: npm ci
@@ -28,12 +30,12 @@ jobs:
       - name: Build Web Assets
         run: npm run build
 
-      - name: Build Electron App (DMG Only)
-        run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+      - name: Build Electron App (DMG & ZIP)
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
 
-      - name: Upload DMG Artifact
+      - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MediCab-macOS-Installer-${{ matrix.arch }}
