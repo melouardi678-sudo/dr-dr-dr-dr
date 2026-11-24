@@ -1,6 +1,6 @@
 {
-  "short_name": "MediCab",
-  "name": "E-ACCESS WEB — Gestion de Cabinet Médical",
+  "short_name": "mediacabinet",
+  "name": "mediacabinet",
   "description": "Logiciel médical complet multi-postes pour cabinet médical",
   "icons": [
     {

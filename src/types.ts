@@ -64,6 +64,8 @@ export interface LicenseInfo {
   trialDays: number;
   isActivated: boolean;
   activationCode?: string;
+  activationCodeHash?: string;
+  activationVersion?: number;
   licenseType: LicenseType;
   expiryDate?: string; // ISO string if applicable
   lastChecksum?: string;
@@ -88,10 +90,34 @@ export interface PrescriptionPrintSettings {
   customHeaderSpaceMm: number; // Marge supérieure en mm si en-tête désactivé
 }
 
+export interface SpecialtyManagementSettings {
+  defaultSpecialty: string;
+  activeSpecialty: string;
+  enabledSpecialties: string[];
+  allowedSpecialtiesByUser: Record<string, string[]>;
+}
+
+export interface SpecialtyOption {
+  id: string;
+  label: string;
+  category: 'general' | 'dental' | 'ophthalmology';
+}
+
+export interface CabinetActTariff {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export interface CabinetSettings {
   name: string;
   doctorName: string;
   speciality: string;
+  specialtyManagement?: SpecialtyManagementSettings;
+  specialtyCategory?: 'general' | 'dental' | 'ophthalmology';
+  inpeNumber?: string;
+  cabinetCity?: string;
+  actTariffs?: CabinetActTariff[];
   address: string;
   phone: string;
   email: string;
@@ -180,6 +206,127 @@ export interface Vitals {
   oxygenSaturation?: number;
 }
 
+export type DentalToothStatus =
+  | 'Dent Saine'
+  | 'Carie'
+  | 'Carie Profonde'
+  | 'Dent Absente'
+  | 'Dent Extraite'
+  | 'Dent Cassée'
+  | 'Obturation'
+  | 'Dévitalisée'
+  | 'Traitement Endodontique'
+  | 'Couronne'
+  | 'Bridge'
+  | 'Implant'
+  | 'Dent Mobile'
+  | 'Infection'
+  | 'Abcès'
+  | 'Fracture'
+  | 'Dent Incluse'
+  | 'Prothèse'
+  | 'À Traiter'
+  | 'Dent à Traiter';
+
+export type DentalSurface = 'M' | 'D' | 'O' | 'V' | 'LP';
+
+export interface DentalProcedureRecord {
+  id: string;
+  date: string;
+  treatment: string;
+  notes: string;
+}
+
+export interface DentalToothRecord {
+  status: DentalToothStatus;
+  diagnosis: string;
+  requiredTreatment: string;
+  procedures: DentalProcedureRecord[];
+  surfaces: Partial<Record<DentalSurface, DentalToothStatus>>;
+  notes: string;
+  changeHistory: Array<{ date: string; details: string }>;
+}
+
+export interface DentalTreatmentRecord {
+  id: string;
+  date: string;
+  toothNumber: string;
+  diagnosis: string;
+  treatment: string;
+  price: number;
+  payment: number;
+  notes: string;
+}
+
+export interface DentalConsultationDetails {
+  procedure: string;
+  toothStatuses: Record<string, DentalToothStatus>;
+  toothDetails?: Record<string, DentalToothRecord>;
+  treatments?: DentalTreatmentRecord[];
+  treatmentPlan: string;
+  sessionNotes: string;
+  procedureCost: number;
+  amountPaid: number;
+}
+
+export interface EyeRefractionMeasurement {
+  sphere: string;
+  cylinder: string;
+  axis: string;
+  add: string;
+  prism: string;
+  base: string;
+  pd: string;
+}
+
+export interface OphthalmologyConsultationDetails {
+  visualAcuityOD: string;
+  visualAcuityOS: string;
+  distanceWithoutCorrectionOD: string;
+  distanceWithoutCorrectionOS: string;
+  distanceWithCorrectionOD: string;
+  distanceWithCorrectionOS: string;
+  nearVisionOD: string;
+  nearVisionOS: string;
+  pinholeOD?: string;
+  pinholeOS?: string;
+  bestCorrectedOD?: string;
+  bestCorrectedOS?: string;
+  refractionOD: EyeRefractionMeasurement;
+  refractionOS: EyeRefractionMeasurement;
+  objectiveRefractionOD?: EyeRefractionMeasurement;
+  objectiveRefractionOS?: EyeRefractionMeasurement;
+  autorefractometryOD?: EyeRefractionMeasurement;
+  autorefractometryOS?: EyeRefractionMeasurement;
+  keratometryOD?: string;
+  keratometryOS?: string;
+  cycloplegia?: boolean;
+  cycloplegicRefractionOD?: EyeRefractionMeasurement;
+  cycloplegicRefractionOS?: EyeRefractionMeasurement;
+  conjunctiva?: string;
+  cornea: string;
+  anteriorChamber?: string;
+  iris: string;
+  pupil: string;
+  lens: string;
+  retina: string;
+  fundus: string;
+  opticNerve?: string;
+  macula?: string;
+  vitreous?: string;
+  intraocularPressureOD: string;
+  intraocularPressureOS: string;
+  pressureMethod?: string;
+  visualField: string;
+  familyEyeHistory?: string;
+  chronicConditions?: string;
+  currentMedications?: string;
+  allergies?: string;
+  eyeDrops: string;
+  treatmentPlan: string;
+  followUp: string;
+}
+
 export interface ConsultationItem {
   id: string;
   patientId: string;
@@ -191,6 +338,9 @@ export interface ConsultationItem {
   observations: string;
   treatmentPlan: string;
   followUpDate?: string;
+  specialtyCategory?: 'general' | 'dental' | 'ophthalmology';
+  dentalDetails?: DentalConsultationDetails;
+  ophthalmologyDetails?: OphthalmologyConsultationDetails;
   cost: number;
   createdAt: string;
 }
@@ -354,6 +504,7 @@ export type InvoiceStatus = 'paid' | 'pending' | 'partially_paid' | 'refunded';
 
 export interface Invoice {
   id: string;
+  consultationId?: string;
   number: string; // e.g. "FAC-2026-0042"
   patientId: string;
   patientName: string;

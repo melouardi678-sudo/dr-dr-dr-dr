@@ -67,6 +67,7 @@ import {
   getUsers,
   getPatients,
   savePatients,
+  syncWithCentralServer,
   getAppointments,
   saveAppointments,
   getConsultations,
@@ -155,6 +156,29 @@ export default function App() {
     syncClient.setUser(currentUser);
     syncClient.connect();
 
+    const pullAllFromCentral = async () => {
+      if (getNetworkConfig().mode === 'local') return;
+      const res = await syncWithCentralServer();
+      if (res.success) {
+        setPatients(getPatients());
+        setAppointments(getAppointments());
+        setConsultations(getConsultations());
+        setPrescriptions(getPrescriptions());
+        setMedications(getMedications());
+        setCertificates(getCertificates());
+        setInvoices(getInvoices());
+        setStock(getStock());
+        setCabinetSettings(getSettings());
+      }
+    };
+
+    pullAllFromCentral();
+    const unsubStatus = syncClient.onStatusChange((status) => {
+      if (status === 'connected') {
+        pullAllFromCentral();
+      }
+    });
+
     const unsubMutations = syncClient.onMutation(async (event) => {
       const networkMode = getNetworkConfig().mode;
 
@@ -197,6 +221,7 @@ export default function App() {
     });
 
     return () => {
+      unsubStatus();
       unsubMutations();
     };
   }, [currentUser]);
@@ -297,16 +322,23 @@ export default function App() {
   };
 
   const handleSaveConsultations = (updated: ConsultationItem[], newInvoice?: Invoice) => {
-    const newConsults = [updated[0], ...consultations];
+    const savedConsultation = updated[0];
+    const isEditing = consultations.some((consultation) => consultation.id === savedConsultation.id);
+    const newConsults = isEditing
+      ? consultations.map((consultation) => consultation.id === savedConsultation.id ? savedConsultation : consultation)
+      : [savedConsultation, ...consultations];
     setConsultations(newConsults);
     saveConsultations(newConsults);
 
     if (newInvoice) {
-      const newInvs = [newInvoice, ...invoices];
+      const invoiceExists = invoices.some((invoice) => invoice.id === newInvoice.id);
+      const newInvs = invoiceExists
+        ? invoices.map((invoice) => invoice.id === newInvoice.id ? newInvoice : invoice)
+        : [newInvoice, ...invoices];
       setInvoices(newInvs);
       saveInvoices(newInvs);
     }
-    addAuditLog('CREATE_CONSULTATION', `Consultation enregistrée pour ${updated[0].patientName}`);
+    addAuditLog(isEditing ? 'UPDATE_CONSULTATION' : 'CREATE_CONSULTATION', `${isEditing ? 'Consultation modifiée' : 'Consultation enregistrée'} pour ${savedConsultation.patientName}`);
   };
 
   const handleSavePrescriptions = (updated: Prescription[]) => {
@@ -462,6 +494,7 @@ export default function App() {
         currentUser={currentUser}
         settings={settings}
         onOpenLogin={() => setIsLoginOpen(true)}
+        onOpenActivation={() => setIsActivationOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenNetwork={() => setIsNetworkModalOpen(true)}
         onLogout={handleLogout}
@@ -775,7 +808,7 @@ export default function App() {
               <div className="relative p-2 bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl">
                 <img
                   src="/icon.png"
-                  alt="MediCab Logo"
+                  alt="mediacabinet Logo"
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-inner"
                   onError={(e) => {
                     // Fallback to inline SVG if local image blocked

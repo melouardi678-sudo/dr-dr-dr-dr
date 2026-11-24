@@ -14,8 +14,21 @@ import {
   DollarSign,
   CheckCircle2,
   TestTube2,
+  ShieldPlus,
 } from 'lucide-react';
-import { ConsultationItem, Patient, Invoice, Vitals, CabinetSettings } from '../../types';
+import {
+  ConsultationItem,
+  Patient,
+  Invoice,
+  Vitals,
+  CabinetSettings,
+  DentalConsultationDetails,
+  OphthalmologyConsultationDetails,
+} from '../../types';
+import { getSpecialtyCategory } from '../../utils/medicalSpecialties';
+import { DentalConsultationFields } from '../DentalConsultationFields';
+import { OphthalmologyConsultationFields } from '../OphthalmologyConsultationFields';
+import { printDentalOdontogram, printMedicalReport } from '../../utils/printMedicalReport';
 
 interface ConsultationViewProps {
   patients: Patient[];
@@ -44,6 +57,7 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
   const [observations, setObservations] = useState('');
   const [treatmentPlan, setTreatmentPlan] = useState('');
   const [cost, setCost] = useState(250);
+  const [selectedActId, setSelectedActId] = useState('');
 
   // Vitals
   const [weightKg, setWeightKg] = useState<number | undefined>(70);
@@ -55,8 +69,60 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
   const [oxygenSat, setOxygenSat] = useState<number | undefined>(98);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [editingConsultationId, setEditingConsultationId] = useState<string | null>(null);
+  const [dentalDetails, setDentalDetails] = useState<DentalConsultationDetails>({
+    procedure: 'Consultation Dentaire',
+    toothStatuses: {},
+    treatmentPlan: '',
+    sessionNotes: '',
+    procedureCost: 250,
+    amountPaid: 250,
+  });
+  const [ophthalmologyDetails, setOphthalmologyDetails] = useState<OphthalmologyConsultationDetails>({
+    visualAcuityOD: '',
+    visualAcuityOS: '',
+    distanceWithoutCorrectionOD: '',
+    distanceWithoutCorrectionOS: '',
+    distanceWithCorrectionOD: '',
+    distanceWithCorrectionOS: '',
+    nearVisionOD: '',
+    nearVisionOS: '',
+    refractionOD: { sphere: '', cylinder: '', axis: '', add: '', prism: '', base: '', pd: '' },
+    refractionOS: { sphere: '', cylinder: '', axis: '', add: '', prism: '', base: '', pd: '' },
+    cornea: '',
+    iris: '',
+    pupil: '',
+    lens: '',
+    retina: '',
+    fundus: '',
+    intraocularPressureOD: '',
+    intraocularPressureOS: '',
+    visualField: '',
+    eyeDrops: '',
+    treatmentPlan: '',
+    followUp: '',
+  });
 
   const currentPatient = patients.find((p) => p.id === selectedPatientId) || patients[0];
+  const activeSpecialty = settings.speciality || settings.specialtyManagement?.activeSpecialty || 'Médecine Générale';
+  const specialtyCategory = getSpecialtyCategory(activeSpecialty);
+  const dentalVisits = consultations
+    .filter((consultation) => consultation.patientId === currentPatient?.id && consultation.dentalDetails)
+    .slice()
+    .sort((left, right) => right.date.localeCompare(left.date))
+    .slice(0, 5);
+  const ophthalmologyVisits = consultations
+    .filter((consultation) => consultation.patientId === currentPatient?.id && consultation.ophthalmologyDetails)
+    .slice()
+    .sort((left, right) => right.date.localeCompare(left.date))
+    .slice(0, 5);
+
+  const specialtyBanner =
+    specialtyCategory === 'dental'
+      ? 'Suivi dentaire • Traitements, odonto-gramme et plan de soins'
+      : specialtyCategory === 'ophthalmology'
+        ? 'Examen ophtalmologique • Acuité visuelle, réfraction et suivi thérapeutique'
+        : 'Consultation médicale spécialisée • Diagnostic, traitement et suivi';
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,39 +139,109 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
     };
 
     const newConsultation: ConsultationItem = {
-      id: `csl_${Date.now()}`,
+      id: editingConsultationId || `csl_${Date.now()}`,
       patientId: currentPatient.id,
       patientName: `${currentPatient.lastName} ${currentPatient.firstName}`,
-      date: new Date().toISOString().split('T')[0],
+      date: consultations.find((consultation) => consultation.id === editingConsultationId)?.date || new Date().toISOString().split('T')[0],
       symptoms,
       diagnosis,
       vitals,
       observations,
-      treatmentPlan,
-      cost,
-      createdAt: new Date().toISOString(),
+      treatmentPlan: specialtyCategory === 'dental'
+        ? dentalDetails.treatmentPlan || treatmentPlan
+        : specialtyCategory === 'ophthalmology'
+          ? ophthalmologyDetails.treatmentPlan || treatmentPlan
+          : treatmentPlan,
+      specialtyCategory,
+      ...(specialtyCategory === 'dental' ? { dentalDetails } : {}),
+      ...(specialtyCategory === 'ophthalmology' ? { ophthalmologyDetails } : {}),
+      ...(specialtyCategory === 'ophthalmology' && ophthalmologyDetails.followUp ? { followUpDate: ophthalmologyDetails.followUp } : {}),
+      cost: specialtyCategory === 'dental' ? dentalDetails.procedureCost : cost,
+      createdAt: consultations.find((consultation) => consultation.id === editingConsultationId)?.createdAt || new Date().toISOString(),
     };
 
+    const invoiceTotal = specialtyCategory === 'dental' ? dentalDetails.procedureCost : cost;
+    const invoicePaid = specialtyCategory === 'dental' ? dentalDetails.amountPaid : cost;
+    const selectedAct = (settings.actTariffs || []).find((act) => act.id === selectedActId);
+    const existingInvoice = invoices.find((invoice) => invoice.consultationId === editingConsultationId);
     // Auto-generate invoice
     const newInvoice: Invoice = {
-      id: `inv_${Date.now()}`,
-      number: `FAC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: existingInvoice?.id || `inv_${Date.now()}`,
+      consultationId: editingConsultationId || undefined,
+      number: existingInvoice?.number || `FAC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       patientId: currentPatient.id,
       patientName: `${currentPatient.lastName} ${currentPatient.firstName}`,
-      date: new Date().toISOString().split('T')[0],
-      items: [{ description: `Consultation : ${diagnosis}`, amount: cost }],
-      subtotal: cost,
-      taxAmount: (cost * settings.taxRate) / 100,
-      total: cost + (cost * settings.taxRate) / 100,
-      amountPaid: cost,
-      status: 'paid',
+      date: existingInvoice?.date || new Date().toISOString().split('T')[0],
+      items: [{
+        description: specialtyCategory === 'dental'
+          ? `${dentalDetails.procedure} : ${diagnosis}`
+          : `${selectedAct?.name || 'Consultation'} : ${diagnosis}`,
+        amount: invoiceTotal,
+      }],
+      subtotal: invoiceTotal,
+      taxAmount: (invoiceTotal * settings.taxRate) / 100,
+      total: invoiceTotal + (invoiceTotal * settings.taxRate) / 100,
+      amountPaid: invoicePaid,
+      status: invoicePaid >= invoiceTotal + (invoiceTotal * settings.taxRate) / 100 ? 'paid' : invoicePaid > 0 ? 'partially_paid' : 'pending',
       paymentMethod: 'cash',
       createdAt: new Date().toISOString(),
     };
 
     onSaveConsultation(newConsultation, newInvoice);
+    setEditingConsultationId(null);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const handleEditVisit = (consultation: ConsultationItem) => {
+    setSelectedPatientId(consultation.patientId);
+    setSymptoms(consultation.symptoms);
+    setDiagnosis(consultation.diagnosis);
+    setObservations(consultation.observations);
+    setTreatmentPlan(consultation.treatmentPlan);
+    setCost(consultation.cost);
+    setEditingConsultationId(consultation.id);
+    if (consultation.dentalDetails) {
+      setDentalDetails({
+        procedure: 'Consultation Dentaire',
+        toothStatuses: {},
+        treatmentPlan: '',
+        sessionNotes: '',
+        procedureCost: consultation.cost,
+        amountPaid: 0,
+        ...consultation.dentalDetails,
+        toothDetails: consultation.dentalDetails.toothDetails || {},
+        treatments: consultation.dentalDetails.treatments || [],
+      });
+    }
+    if (consultation.ophthalmologyDetails) {
+      const emptyMeasurement = { sphere: '', cylinder: '', axis: '', add: '', prism: '', base: '', pd: '' };
+      setOphthalmologyDetails({
+        visualAcuityOD: '',
+        visualAcuityOS: '',
+        distanceWithoutCorrectionOD: '',
+        distanceWithoutCorrectionOS: '',
+        distanceWithCorrectionOD: '',
+        distanceWithCorrectionOS: '',
+        nearVisionOD: '',
+        nearVisionOS: '',
+        refractionOD: emptyMeasurement,
+        refractionOS: emptyMeasurement,
+        cornea: '',
+        iris: '',
+        pupil: '',
+        lens: '',
+        retina: '',
+        fundus: '',
+        intraocularPressureOD: '',
+        intraocularPressureOS: '',
+        visualField: '',
+        eyeDrops: '',
+        treatmentPlan: '',
+        followUp: '',
+        ...consultation.ophthalmologyDetails,
+      });
+    }
   };
 
   return (
@@ -117,7 +253,7 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">Nouvelle Consultation & Bilan Médical</h1>
-            <p className="text-xs text-slate-400">Examen clinique, constantes vitales et diagnostic</p>
+            <p className="text-xs text-slate-400">{specialtyBanner}</p>
           </div>
         </div>
 
@@ -151,12 +287,17 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
             </select>
           </div>
 
-          {/* Vitals Input Grid */}
           <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-            <h3 className="font-bold text-emerald-400 text-xs flex items-center space-x-1.5">
-              <Activity className="w-4 h-4" />
-              <span>Constantes Vitales du Patient</span>
-            </h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-bold text-emerald-400 text-xs flex items-center space-x-1.5">
+                <Activity className="w-4 h-4" />
+                <span>Constantes Vitales du Patient</span>
+              </h3>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1">
+                <ShieldPlus className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[10px] text-slate-300 font-bold uppercase">{activeSpecialty}</span>
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
@@ -251,6 +392,60 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
             </div>
           </div>
 
+          {specialtyCategory === 'dental' && (
+            <DentalConsultationFields
+              value={dentalDetails}
+              onChange={setDentalDetails}
+              previousVisits={dentalVisits}
+              currency={settings.currency}
+              onEditVisit={handleEditVisit}
+              onPrintReport={() => printMedicalReport(`Rapport dentaire — ${currentPatient?.lastName || ''} ${currentPatient?.firstName || ''}`, [
+                { label: 'Patient', value: currentPatient ? `${currentPatient.lastName} ${currentPatient.firstName}` : '' },
+                { label: 'Diagnostic', value: diagnosis },
+                { label: 'Acte', value: dentalDetails.procedure },
+                { label: 'Historique des procédures', value: Object.entries(dentalDetails.toothDetails || {}).flatMap(([tooth, record]) => record.procedures.map((procedure) => `${procedure.date} · FDI ${tooth} · ${procedure.treatment} · ${procedure.notes}`)).join('\n') },
+                { label: 'Odontogramme FDI', value: Object.entries(dentalDetails.toothStatuses).map(([tooth, status]) => `${tooth}: ${status}`).join('\n') },
+                { label: 'Plan de traitement', value: dentalDetails.treatmentPlan },
+                { label: 'Notes de séance', value: dentalDetails.sessionNotes },
+                { label: 'Registre des actes', value: (dentalDetails.treatments || []).map((treatment) => `${treatment.date} · ${treatment.toothNumber} · ${treatment.diagnosis} · ${treatment.treatment} · ${treatment.price} ${settings.currency} · payé ${treatment.payment} ${settings.currency} · ${treatment.notes}`).join('\n') },
+                { label: 'Coût / payé / restant', value: `${dentalDetails.procedureCost} / ${dentalDetails.amountPaid} / ${Math.max(0, dentalDetails.procedureCost - dentalDetails.amountPaid)} ${settings.currency}` },
+              ])}
+              onPrintChart={() => printDentalOdontogram(
+                currentPatient ? `${currentPatient.lastName} ${currentPatient.firstName}` : '',
+                dentalDetails,
+              )}
+            />
+          )}
+
+          {specialtyCategory === 'ophthalmology' && (
+            <OphthalmologyConsultationFields
+              value={ophthalmologyDetails}
+              onChange={setOphthalmologyDetails}
+              previousVisits={ophthalmologyVisits}
+              patientName={currentPatient ? `${currentPatient.lastName} ${currentPatient.firstName}` : ''}
+              doctorName={settings.doctorName}
+              onEditVisit={handleEditVisit}
+              onPrintReport={() => printMedicalReport(`Rapport ophtalmologique — ${currentPatient?.lastName || ''} ${currentPatient?.firstName || ''}`, [
+                { label: 'Patient', value: currentPatient ? `${currentPatient.lastName} ${currentPatient.firstName}` : '' },
+                { label: 'Diagnostic', value: diagnosis },
+                { label: 'Acuité OD / OS', value: `${ophthalmologyDetails.visualAcuityOD} / ${ophthalmologyDetails.visualAcuityOS}` },
+                { label: 'Réfraction OD', value: `SPH ${ophthalmologyDetails.refractionOD.sphere}, CYL ${ophthalmologyDetails.refractionOD.cylinder}, AXIS ${ophthalmologyDetails.refractionOD.axis}, ADD ${ophthalmologyDetails.refractionOD.add}, PD ${ophthalmologyDetails.refractionOD.pd}` },
+                { label: 'Réfraction OS', value: `SPH ${ophthalmologyDetails.refractionOS.sphere}, CYL ${ophthalmologyDetails.refractionOS.cylinder}, AXIS ${ophthalmologyDetails.refractionOS.axis}, ADD ${ophthalmologyDetails.refractionOS.add}, PD ${ophthalmologyDetails.refractionOS.pd}` },
+                { label: 'Examen', value: `Cornée: ${ophthalmologyDetails.cornea}; Iris: ${ophthalmologyDetails.iris}; Pupille: ${ophthalmologyDetails.pupil}; Cristallin: ${ophthalmologyDetails.lens}; Rétine: ${ophthalmologyDetails.retina}; Fond d'œil: ${ophthalmologyDetails.fundus}; IOP OD/OS: ${ophthalmologyDetails.intraocularPressureOD}/${ophthalmologyDetails.intraocularPressureOS}; Champ visuel: ${ophthalmologyDetails.visualField}` },
+                { label: 'Traitement / collyres', value: `${ophthalmologyDetails.eyeDrops}\n${ophthalmologyDetails.treatmentPlan}` },
+                { label: 'Antécédents et traitements', value: `Maladies chroniques: ${ophthalmologyDetails.chronicConditions || ''}; Famille: ${ophthalmologyDetails.familyEyeHistory || ''}; Médicaments: ${ophthalmologyDetails.currentMedications || ''}; Allergies: ${ophthalmologyDetails.allergies || ''}` },
+                { label: 'Suivi', value: ophthalmologyDetails.followUp },
+              ])}
+              onPrintPrescription={() => printMedicalReport(`Prescription optique — ${currentPatient?.lastName || ''} ${currentPatient?.firstName || ''}`, [
+                { label: 'Patient', value: currentPatient ? `${currentPatient.lastName} ${currentPatient.firstName}` : '' },
+                { label: 'Médecin', value: settings.doctorName },
+                { label: 'OD — Œil droit', value: `SPH ${ophthalmologyDetails.refractionOD.sphere} | CYL ${ophthalmologyDetails.refractionOD.cylinder} | AXIS ${ophthalmologyDetails.refractionOD.axis} | ADD ${ophthalmologyDetails.refractionOD.add} | PD ${ophthalmologyDetails.refractionOD.pd}` },
+                { label: 'OS — Œil gauche', value: `SPH ${ophthalmologyDetails.refractionOS.sphere} | CYL ${ophthalmologyDetails.refractionOS.cylinder} | AXIS ${ophthalmologyDetails.refractionOS.axis} | ADD ${ophthalmologyDetails.refractionOS.add} | PD ${ophthalmologyDetails.refractionOS.pd}` },
+                { label: 'Vision mesurée', value: `AV OD/OS : ${ophthalmologyDetails.visualAcuityOD} / ${ophthalmologyDetails.visualAcuityOS}; loin sans correction : ${ophthalmologyDetails.distanceWithoutCorrectionOD} / ${ophthalmologyDetails.distanceWithoutCorrectionOS}; près : ${ophthalmologyDetails.nearVisionOD} / ${ophthalmologyDetails.nearVisionOS}` },
+              ])}
+            />
+          )}
+
           {/* Symptoms & Diagnostic */}
           <div className="space-y-3">
             <div>
@@ -287,16 +482,39 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block font-bold text-slate-300 mb-1">Honoraires ({settings.currency})</label>
-                <input
-                  type="number"
-                  value={cost}
-                  onChange={(e) => setCost(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-emerald-400 font-mono font-bold focus:outline-none"
-                />
-              </div>
+            <div className={`grid grid-cols-1 ${specialtyCategory === 'dental' ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-3`}>
+              {specialtyCategory !== 'dental' && (
+                <div className="space-y-2">
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Acte médical</label>
+                    <select
+                      value={selectedActId}
+                      onChange={(e) => {
+                        const actId = e.target.value;
+                        setSelectedActId(actId);
+                        const act = (settings.actTariffs || []).find((item) => item.id === actId);
+                        if (act) setCost(act.price);
+                      }}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
+                    >
+                      <option value="">Choisir un acte</option>
+                      {(settings.actTariffs || []).map((act) => (
+                        <option key={act.id} value={act.id}>{act.name} — {act.price} {settings.currency}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Honoraires / tarif ({settings.currency})</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cost}
+                      onChange={(e) => setCost(Number(e.target.value) || 0)}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-emerald-400 font-mono font-bold focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
               <div className="flex items-end">
                 <button
                   type="button"
@@ -340,7 +558,7 @@ export const ConsultationView: React.FC<ConsultationViewProps> = ({
               className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow-md border border-emerald-500/80 hover:brightness-105 hover:border-emerald-400 flex items-center space-x-2 transition-all duration-200"
             >
               <Save className="w-4 h-4" />
-              <span>Valider la Consultation & Générer Facture</span>
+              <span>{editingConsultationId ? 'Enregistrer les modifications' : 'Valider la Consultation & Générer Facture'}</span>
             </button>
           </div>
         </div>

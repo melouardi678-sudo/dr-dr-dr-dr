@@ -1,10 +1,10 @@
 {
   "name": "medicab-desktop",
-  "productName": "MediCab Medical Cabinet",
+  "productName": "mediacabinet",
   "description": "Logiciel de gestion de cabinet médical professionnel",
   "author": "E-ACCESS WEB Medical Software Solutions",
   "private": true,
-  "version": "1.1.2",
+  "version": "1.1.4",
   "type": "commonjs",
   "main": "electron-main.js",
   "scripts": {
@@ -19,7 +19,6 @@
     "electron:build:mac:zip:arm64": "npm run build && electron-builder --mac zip --arm64",
     "electron:build:win": "npm run build && electron-builder --win --x64 --ia32",
     "electron:build:all": "npm run build && electron-builder -mw",
-    "reset:license": "node MediCab-License-Reset.js",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "node -e \"['dist','release'].forEach(d => fs.existsSync(d) && fs.rmSync(d, {recursive: true, force: true}))\"",
@@ -28,7 +27,7 @@
   },
   "build": {
     "appId": "com.medicab.desktop",
-    "productName": "MediCab Medical Cabinet",
+    "productName": "mediacabinet",
     "directories": {
       "buildResources": "build",
       "output": "release"
@@ -52,7 +51,7 @@
       "gatekeeperAssess": true
     },
     "dmg": {
-      "title": "MediCab Medical Cabinet",
+      "title": "mediacabinet",
       "icon": "public/icon.png",
       "contents": [
         {
@@ -85,11 +84,12 @@
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "MediCab Medical Cabinet",
+      "shortcutName": "mediacabinet",
       "installerIcon": "public/icon.ico",
       "uninstallerIcon": "public/icon.ico",
       "installerHeaderIcon": "public/icon.ico"

@@ -46,7 +46,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({
               <Logo variant="icon" size={44} themeMode="dark" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white tracking-tight">MediCab</h2>
+              <h2 className="text-2xl font-black text-white tracking-tight">mediacabinet</h2>
               <p className="text-xs text-sky-400 font-bold uppercase tracking-widest mt-0.5">
                 E-ACCESS WEB
               </p>
@@ -61,7 +61,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                 <AppWindow className="w-4 h-4 text-slate-500" />
                 <span className="font-medium">Application</span>
               </div>
-              <span className="font-extrabold text-white text-sm">MediCab</span>
+              <span className="font-extrabold text-white text-sm">mediacabinet</span>
             </div>
 
             {/* Publisher */}

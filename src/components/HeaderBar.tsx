@@ -21,6 +21,7 @@ interface HeaderBarProps {
   currentUser: AppUser;
   settings?: CabinetSettings;
   onOpenLogin: () => void;
+  onOpenActivation: () => void;
   onOpenExeGuide?: () => void;
   onOpenAbout?: () => void;
   onOpenNetwork?: () => void;
@@ -35,6 +36,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   licenseStatus,
   currentUser,
   settings,
+  onOpenActivation,
   onOpenNetwork,
   onLogout,
   theme,
@@ -84,7 +86,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   return (
     <div className="bg-slate-900 text-slate-100 flex flex-wrap md:flex-nowrap items-center justify-between px-3 sm:px-4 py-2 border-b border-slate-800 text-xs select-none sticky top-0 z-40 gap-2 sm:gap-3 shadow-md">
-      {/* Left: Mobile Menu Toggle, Logo & MediCab Brand */}
+      {/* Left: Mobile Menu Toggle, Logo & mediacabinet Brand */}
       <div className="flex items-center space-x-2 shrink-0">
         {onToggleMobileMenu && (
           <button
@@ -126,8 +128,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         <NetworkStatusBadge onOpenNetworkSettings={onOpenNetwork} />
 
         {/* License status badge */}
-        <div
-          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border ${
+        <button
+          type="button"
+          onClick={onOpenActivation}
+          aria-label="Ouvrir la fenêtre d'activation"
+          className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border transition-colors hover:border-emerald-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
             licenseStatus.isExpired
               ? 'bg-rose-950/80 text-rose-300 border-rose-700/60'
               : licenseStatus.daysRemaining < 3
@@ -144,7 +149,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           )}
           <span className="font-semibold text-[11px] hidden sm:inline">{licenseStatus.statusText}</span>
-        </div>
+        </button>
 
         {/* Dark / Light theme toggle */}
         <button

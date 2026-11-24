@@ -1,12 +1,12 @@
 #!/bin/bash
 # ==============================================================================
-# MediCab Medical Cabinet - macOS Quick Launch Script
+# mediacabinet - macOS Quick Launch Script
 # ==============================================================================
 
 cd "$(dirname "$0")"
 
 echo "=========================================================="
-echo "    🚀 تشغيل MediCab Medical Cabinet"
+echo "    🚀 تشغيل mediacabinet"
 echo "=========================================================="
 
 if ! command -v node &> /dev/null

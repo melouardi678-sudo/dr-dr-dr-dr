@@ -1,12 +1,10 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
 const dotenv = require('dotenv');
 
-// Load .env safely both in development and in production (process.resourcesPath)
-const envPath = app.isPackaged && process.resourcesPath 
-  ? path.join(process.resourcesPath, '.env') 
+const envPath = app.isPackaged && process.resourcesPath
+  ? path.join(process.resourcesPath, '.env')
   : path.join(__dirname, '.env');
 dotenv.config({ path: envPath });
 
@@ -16,28 +14,24 @@ function setupNativeMenu() {
   const isMac = process.platform === 'darwin';
   const template = [
     ...(isMac
-      ? [
-          {
-            label: app.name || 'MediCab',
-            submenu: [
-              { role: 'about', label: 'À propos de MediCab' },
-              { type: 'separator' },
-              { role: 'services', label: 'Services' },
-              { type: 'separator' },
-              { role: 'hide', label: 'Masquer MediCab' },
-              { role: 'hideOthers', label: 'Masquer les autres' },
-              { role: 'unhide', label: 'Tout afficher' },
-              { type: 'separator' },
-              { role: 'quit', label: 'Quitter MediCab' }
-            ]
-          }
-        ]
+      ? [{
+          label: app.name || 'MediCab',
+          submenu: [
+            { role: 'about', label: 'À propos de MediCab' },
+            { type: 'separator' },
+            { role: 'services', label: 'Services' },
+            { type: 'separator' },
+            { role: 'hide', label: 'Masquer MediCab' },
+            { role: 'hideOthers', label: 'Masquer les autres' },
+            { role: 'unhide', label: 'Tout afficher' },
+            { type: 'separator' },
+            { role: 'quit', label: 'Quitter MediCab' },
+          ],
+        }]
       : []),
     {
       label: 'Fichier',
-      submenu: [
-        isMac ? { role: 'close', label: 'Fermer la fenêtre' } : { role: 'quit', label: 'Quitter' }
-      ]
+      submenu: [isMac ? { role: 'close', label: 'Fermer la fenêtre' } : { role: 'quit', label: 'Quitter' }],
     },
     {
       label: 'Édition',
@@ -48,8 +42,8 @@ function setupNativeMenu() {
         { role: 'cut', label: 'Couper' },
         { role: 'copy', label: 'Copier' },
         { role: 'paste', label: 'Coller' },
-        { role: 'selectAll', label: 'Tout sélectionner' }
-      ]
+        { role: 'selectAll', label: 'Tout sélectionner' },
+      ],
     },
     {
       label: 'Affichage',
@@ -62,8 +56,8 @@ function setupNativeMenu() {
         { role: 'zoomIn', label: 'Zoom avant' },
         { role: 'zoomOut', label: 'Zoom arrière' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Plein écran' }
-      ]
+        { role: 'togglefullscreen', label: 'Plein écran' },
+      ],
     },
     {
       label: 'Fenêtre',
@@ -71,68 +65,46 @@ function setupNativeMenu() {
         { role: 'minimize', label: 'Réduire' },
         { role: 'zoom', label: 'Agrandir' },
         ...(isMac
-          ? [
-              { type: 'separator' },
-              { role: 'front', label: 'Tout ramener au premier plan' },
-              { type: 'separator' },
-              { role: 'window', label: 'Fenêtre' }
-            ]
-          : [{ role: 'close', label: 'Fermer' }])
-      ]
-    }
+          ? [{ type: 'separator' }, { role: 'front', label: 'Tout ramener au premier plan' }, { type: 'separator' }, { role: 'window', label: 'Fenêtre' }]
+          : [{ role: 'close', label: 'Fermer' }]),
+      ],
+    },
   ];
 
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
-
-function waitForServer(url, timeout = 5000) {
-  const startTime = Date.now();
-  return new Promise((resolve) => {
-    const check = () => {
-      http.get(url, (res) => {
-        if (res.statusCode >= 200 && res.statusCode < 500) {
-          resolve(true);
-        } else {
-          retry();
-        }
-      }).on('error', () => {
-        retry();
-      });
-    };
-    const retry = () => {
-      if (Date.now() - startTime > timeout) {
-        resolve(false);
-      } else {
-        setTimeout(check, 200);
-      }
-    };
-    check();
-  });
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function getAppIconPath() {
-  const isWin = process.platform === 'win32';
-  const iconName = isWin ? 'icon.ico' : 'icon.png';
+  const iconName = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const candidates = [
     path.join(__dirname, 'build', iconName),
-    path.join(__dirname, 'build', 'icon.png'),
-    process.resourcesPath ? path.join(process.resourcesPath, 'build', iconName) : null,
-    process.resourcesPath ? path.join(process.resourcesPath, 'resources', 'icons', iconName) : null,
-    path.join(__dirname, 'resources', 'icons', iconName),
-    path.join(__dirname, 'public', isWin ? 'icon.ico' : 'icon.png'),
+    path.join(__dirname, 'public', iconName),
     path.join(__dirname, 'public', 'icon.png'),
-    path.join(__dirname, 'public', 'favicon.ico'),
-  ].filter(Boolean);
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate));
+}
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return undefined;
+function getPrintPageSize(pageSize) {
+  return pageSize === 'A5' ? { width: 148000, height: 210000 } : { width: 210000, height: 297000 };
 }
 
 async function createWindow() {
-  const appIcon = getAppIconPath();
+  process.env.NODE_ENV = 'production';
+  const serverPath = path.join(__dirname, 'dist', 'server.cjs');
+  if (!fs.existsSync(serverPath)) {
+    throw new Error(`Le serveur intégré est introuvable : ${serverPath}`);
+  }
+
+  const serverModule = require(serverPath);
+  if (!serverModule || typeof serverModule.startServer !== 'function') {
+    throw new Error('Le point de démarrage du serveur intégré est manquant.');
+  }
+
+  const server = await serverModule.startServer();
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Le serveur local n’a pas fourni de port valide.');
+  }
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -141,108 +113,213 @@ async function createWindow() {
     minHeight: 700,
     show: false,
     backgroundColor: '#090d16',
-    icon: appIcon,
+    icon: getAppIconPath(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       spellcheck: false,
-    }
+    },
   });
 
-  let isWindowVisible = false;
-  const showMainWindow = () => {
-    if (!isWindowVisible && mainWindow && !mainWindow.isDestroyed()) {
-      isWindowVisible = true;
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  };
-
-  mainWindow.once('ready-to-show', showMainWindow);
-  setTimeout(showMainWindow, 3000);
-
-  const localIndexPath = path.join(__dirname, 'dist', 'index.html');
-  const serverPath = path.join(__dirname, 'dist', 'server.cjs');
-
-  // Packaged Electron apps must always use the bundled production server.
-  process.env.NODE_ENV = 'production';
-
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    console.warn(`[Electron] Navigation failed for ${validatedURL} (${errorCode}: ${errorDescription})`);
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+  });
+  mainWindow.webContents.on('did-fail-load', (_event, code, description, url) => {
+    console.error(`[Electron] Navigation failed for ${url} (${code}: ${description})`);
   });
 
-  // Start Express & WebSocket server and dynamically extract its port
-  let activePort = Number(process.env.PORT) || 3000;
-  try {
-    if (fs.existsSync(serverPath)) {
-      const serverModule = require(serverPath);
-      if (serverModule && typeof serverModule.startServer === 'function') {
-        const serverInstance = await serverModule.startServer();
-        if (serverInstance && typeof serverInstance.address === 'function') {
-          const addr = serverInstance.address();
-          if (addr && typeof addr === 'object' && addr.port) {
-            activePort = addr.port;
-            console.log(`[Electron] Detected dynamic server port: ${activePort}`);
-          }
-        }
-      }
-    } else {
-      console.warn('[Electron] server.cjs not found at:', serverPath);
-    }
-  } catch (err) {
-    console.warn('[Electron] Notice on starting local server:', err.message || err);
+  await mainWindow.loadURL(`http://127.0.0.1:${address.port}`);
+}
+
+function restoreMainWindowFocus(targetWindow) {
+  if (!targetWindow || targetWindow.isDestroyed()) return;
+  if (targetWindow.isMinimized()) {
+    targetWindow.restore();
   }
-
-  // Verify connection against the exact dynamic port
-  const targetUrl = `http://127.0.0.1:${activePort}`;
-  const serverReady = await waitForServer(targetUrl, 5000);
-
-  if (serverReady) {
-    console.log(`[Electron] Loading application URL: ${targetUrl}`);
-    await mainWindow.loadURL(targetUrl);
-  } else if (fs.existsSync(localIndexPath)) {
-    console.log('[Electron] Server delayed, fallback loading index.html...');
-    await mainWindow.loadFile(localIndexPath);
-  } else {
-    await mainWindow.loadURL(targetUrl);
+  targetWindow.focus();
+  if (targetWindow.webContents && !targetWindow.webContents.isDestroyed()) {
+    targetWindow.webContents.focus();
   }
 }
 
-app.whenReady().then(() => {
-  setupNativeMenu();
-  createWindow();
+function closePrintWindowSafely(printWindow) {
+  if (printWindow && !printWindow.isDestroyed()) {
+    try {
+      printWindow.destroy();
+    } catch {
+      // تجاهل أي خطأ أثناء الإغلاق
+    }
+  }
+}
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+function createPrintHtmlWindow(html, parentWindow) {
+  const printWindow = new BrowserWindow({
+    show: false,
+    width: 794,
+    height: 1123,
+    parent: parentWindow && !parentWindow.isDestroyed() ? parentWindow : undefined,
+    webPreferences: {
+      sandbox: true,
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
   });
+
+  const encodedHtml = Buffer.from(html, 'utf8').toString('base64');
+  printWindow.loadURL(`data:text/html;base64,${encodedHtml}`);
+
+  return printWindow;
+}
+
+function waitForPrintWindow(win, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    if (!win || win.isDestroyed()) {
+      reject(new Error('Print window destroyed'));
+      return;
+    }
+
+    let settled = false;
+    const finish = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn(arg);
+    };
+
+    const timer = setTimeout(() => {
+      finish(resolve);
+    }, timeoutMs);
+
+    const onLoaded = () => {
+      // مهلة قصيرة جداً لضمان اكتمال رسم الخطوط والعناصر
+      setTimeout(() => finish(resolve), 150);
+    };
+
+    if (!win.webContents.isLoading()) {
+      onLoaded();
+    } else {
+      win.webContents.once('did-finish-load', onLoaded);
+      win.webContents.once('did-fail-load', (_event, code, description) => {
+        finish(reject, new Error(`${description} (${code})`));
+      });
+    }
+  });
+}
+
+function triggerWebContentsPrint(webContents, printOptions) {
+  return new Promise((resolve, reject) => {
+    if (!webContents || webContents.isDestroyed()) {
+      reject(new Error('Invalid webContents for printing'));
+      return;
+    }
+
+    try {
+      webContents.print(printOptions, (success, failureReason) => {
+        if (!success && failureReason && failureReason !== 'cancelled') {
+          reject(new Error(failureReason));
+          return;
+        }
+        resolve({ success, failureReason });
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+ipcMain.handle('print-document', async (event, options) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  try {
+    if (!win || win.isDestroyed()) {
+      throw new Error('No active window found for printing');
+    }
+    const result = await triggerWebContentsPrint(win.webContents, {
+      silent: false,
+      printBackground: true,
+      ...(options || {}),
+    });
+    restoreMainWindowFocus(win);
+    return { success: true, ...result };
+  } catch (err) {
+    restoreMainWindowFocus(win);
+    console.error('Print error:', err);
+    return { success: false, error: err.message };
+  }
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+ipcMain.handle('print-html-document', async (event, options) => {
+  let printWindow = null;
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+
+  try {
+    printWindow = createPrintHtmlWindow(options?.html || '<!doctype html>', parentWindow);
+    await waitForPrintWindow(printWindow);
+
+    const result = await triggerWebContentsPrint(printWindow.webContents, {
+      silent: false,
+      printBackground: true,
+      pageSize: getPrintPageSize(options?.pageSize),
+      margins: { marginType: 'none' },
+    });
+
+    closePrintWindowSafely(printWindow);
+    restoreMainWindowFocus(parentWindow);
+    return { success: true, ...result };
+  } catch (err) {
+    closePrintWindowSafely(printWindow);
+    restoreMainWindowFocus(parentWindow);
+    console.error('HTML print error:', err);
+    return { success: false, error: err.message };
+  }
 });
 
-// IPC Handlers
+ipcMain.handle('export-html-pdf', async (event, options = {}) => {
+  let printWindow = null;
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+
+  try {
+    const { filePath, canceled } = await dialog.showSaveDialog(parentWindow, {
+      title: 'Exporter en PDF',
+      defaultPath: path.join(app.getPath('documents'), options.filename || 'Document_Medical.pdf'),
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    });
+    if (canceled || !filePath) return { success: false, canceled: true };
+
+    printWindow = createPrintHtmlWindow(options.html || '<!doctype html>', parentWindow);
+    await waitForPrintWindow(printWindow);
+    const pdfData = await printWindow.webContents.printToPDF({
+      printBackground: true,
+      pageSize: getPrintPageSize(options.pageSize),
+      margins: { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 },
+    });
+    fs.writeFileSync(filePath, pdfData);
+    return { success: true, filePath };
+  } catch (err) {
+    console.error('HTML PDF export error:', err);
+    return { success: false, error: err.message };
+  } finally {
+    closePrintWindowSafely(printWindow);
+    restoreMainWindowFocus(parentWindow);
+  }
+});
+
 ipcMain.handle('excel-open-dialog', async (event) => {
   try {
     const win = BrowserWindow.fromWebContents(event.sender);
-    const { canceled, filePaths } = await dialog.showOpenDialog(win || {}, {
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
       title: 'Sélectionner un fichier Excel',
       filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }],
-      properties: ['openFile']
+      properties: ['openFile'],
     });
-
-    if (canceled || filePaths.length === 0) {
-      return { success: false, canceled: true };
-    }
+    if (canceled || filePaths.length === 0) return { success: false, canceled: true };
 
     const filePath = filePaths[0];
-    const fileBuffer = fs.readFileSync(filePath);
-    return { 
-      success: true, 
-      filePath, 
+    return {
+      success: true,
+      filePath,
       fileName: path.basename(filePath),
-      data: fileBuffer.toString('base64') 
+      data: fs.readFileSync(filePath).toString('base64'),
     };
   } catch (err) {
     console.error('Excel open dialog error:', err);
@@ -250,21 +327,17 @@ ipcMain.handle('excel-open-dialog', async (event) => {
   }
 });
 
-ipcMain.handle('excel-save-dialog', async (event, { defaultFilename, base64Data }) => {
+ipcMain.handle('excel-save-dialog', async (event, { defaultFilename, base64Data } = {}) => {
   try {
     const win = BrowserWindow.fromWebContents(event.sender);
-    const { filePath, canceled } = await dialog.showSaveDialog(win || {}, {
+    const { filePath, canceled } = await dialog.showSaveDialog(win, {
       title: 'Enregistrer le fichier Excel',
       defaultPath: path.join(app.getPath('documents'), defaultFilename || 'Patients_MediCab.xlsx'),
-      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }]
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
     });
+    if (canceled || !filePath) return { success: false, canceled: true };
 
-    if (canceled || !filePath) {
-      return { success: false, canceled: true };
-    }
-
-    const buffer = Buffer.from(base64Data, 'base64');
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(filePath, Buffer.from(base64Data || '', 'base64'));
     return { success: true, filePath };
   } catch (err) {
     console.error('Excel save dialog error:', err);
@@ -272,47 +345,23 @@ ipcMain.handle('excel-save-dialog', async (event, { defaultFilename, base64Data 
   }
 });
 
-ipcMain.handle('print-document', async (event, options) => {
+ipcMain.handle('export-pdf', async (event, options = {}) => {
   try {
     const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win) {
-      throw new Error('No active window found for printing');
-    }
-    await win.webContents.print({
-      silent: false,
-      printBackground: true,
-      ...options
-    });
-    return { success: true };
-  } catch (err) {
-    console.error('Print error:', err);
-    return { success: false, error: err.message };
-  }
-});
-
-ipcMain.handle('export-pdf', async (event, options) => {
-  try {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win) {
-      throw new Error('No active window found for PDF export');
-    }
+    if (!win || win.isDestroyed()) throw new Error('No active window found for PDF export');
 
     const { filePath, canceled } = await dialog.showSaveDialog(win, {
       title: 'Exporter en PDF',
-      defaultPath: path.join(app.getPath('documents'), options?.filename || 'Document_Medical.pdf'),
-      filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+      defaultPath: path.join(app.getPath('documents'), options.filename || 'Document_Medical.pdf'),
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
     });
-
-    if (canceled || !filePath) {
-      return { success: false, canceled: true };
-    }
+    if (canceled || !filePath) return { success: false, canceled: true };
 
     const pdfData = await win.webContents.printToPDF({
       printBackground: true,
-      landscape: options?.landscape || false,
-      pageSize: options?.pageSize || 'A4'
+      landscape: options.landscape || false,
+      pageSize: getPrintPageSize(options.pageSize),
     });
-
     fs.writeFileSync(filePath, pdfData);
     return { success: true, filePath };
   } catch (err) {
@@ -323,24 +372,45 @@ ipcMain.handle('export-pdf', async (event, options) => {
 
 ipcMain.handle('window-minimize', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) win.minimize();
+  if (win && !win.isDestroyed()) win.minimize();
   return { success: true };
 });
 
 ipcMain.handle('window-maximize', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) {
-    if (win.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win.maximize();
-    }
+  if (win && !win.isDestroyed()) {
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
   }
   return { success: true };
 });
 
 ipcMain.handle('window-close', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) win.close();
+  if (win && !win.isDestroyed()) win.close();
   return { success: true };
+});
+
+app.whenReady().then(async () => {
+  setupNativeMenu();
+  try {
+    await createWindow();
+  } catch (err) {
+    console.error('Application startup error:', err);
+    dialog.showErrorBox('Erreur de démarrage', `Impossible de démarrer MediCab.\n\n${err.message}`);
+    app.quit();
+  }
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow().catch((err) => {
+        console.error('Application restart error:', err);
+        dialog.showErrorBox('Erreur de démarrage', `Impossible de démarrer MediCab.\n\n${err.message}`);
+      });
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
 });

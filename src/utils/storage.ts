@@ -20,6 +20,7 @@
   UserRole,
   PrescriptionPrintSettings,
 } from '../types';
+import { DEFAULT_SPECIALTY_MANAGEMENT, buildSpecialtyManagement } from './medicalSpecialties';
 
 export const DEFAULT_PRESCRIPTION_PRINT_SETTINGS: PrescriptionPrintSettings = {
   showAge: true,
@@ -87,7 +88,17 @@ export const DEFAULT_USERS: AppUser[] = [];
 export const DEFAULT_SETTINGS: CabinetSettings = {
   name: 'Cabinet Médical Dr. BENALI',
   doctorName: 'Dr. Karim BENALI',
-  speciality: 'Médecine Générale & Chronique',
+  speciality: 'Médecine Générale',
+  specialtyCategory: 'general',
+  specialtyManagement: DEFAULT_SPECIALTY_MANAGEMENT,
+  inpeNumber: '084291853',
+  cabinetCity: 'Casablanca',
+  actTariffs: [
+    { id: 'act_consultation_specialisee', name: 'Consultation Spécialisée', price: 300 },
+    { id: 'act_controle_medical', name: 'Contrôle médical', price: 150 },
+    { id: 'act_echographie', name: 'Échographie de diagnostic', price: 400 },
+    { id: 'act_ecg', name: 'ECG / Bilan cardiovasculaire', price: 250 },
+  ],
   address: '12 Avenue Mohammed V, Résidence Ibn Sina, 2ème étage',
   phone: '05 22 34 56 78 / 06 61 12 34 56',
   email: 'contact@cabinet-benali.ma',
@@ -346,9 +357,18 @@ export async function syncWithCentralServer(): Promise<{ success: boolean; stats
 // Higher-level storage functions
 export function getSettings(): CabinetSettings {
   const settings = getStoredData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+  const specialtyManagement = buildSpecialtyManagement({ ...DEFAULT_SETTINGS, ...settings });
+  const normalizedSpeciality = settings.specialtyManagement?.activeSpecialty || settings.speciality || specialtyManagement.defaultSpecialty || DEFAULT_SETTINGS.speciality;
+
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
+    speciality: normalizedSpeciality,
+    specialtyCategory: settings.specialtyCategory || 'general',
+    specialtyManagement,
+    actTariffs: settings.actTariffs?.length
+      ? settings.actTariffs
+      : DEFAULT_SETTINGS.actTariffs,
     prescriptionPrintSettings: {
       ...DEFAULT_PRESCRIPTION_PRINT_SETTINGS,
       ...(settings.prescriptionPrintSettings || {}),
@@ -357,7 +377,22 @@ export function getSettings(): CabinetSettings {
 }
 
 export function saveSettings(settings: CabinetSettings): void {
-  setStoredData(STORAGE_KEYS.SETTINGS, settings);
+  const requestedSpecialty = settings.speciality || settings.specialtyManagement?.activeSpecialty || DEFAULT_SETTINGS.speciality;
+  const specialtyManagement = buildSpecialtyManagement({
+    ...settings,
+    specialtyManagement: {
+      ...settings.specialtyManagement,
+      defaultSpecialty: requestedSpecialty,
+      activeSpecialty: requestedSpecialty,
+    },
+  });
+  const normalized = {
+    ...settings,
+    speciality: requestedSpecialty,
+    specialtyManagement,
+    specialtyCategory: settings.specialtyCategory || 'general',
+  };
+  setStoredData(STORAGE_KEYS.SETTINGS, normalized);
 }
 
 export function getUsers(): AppUser[] {

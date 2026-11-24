@@ -1,12 +1,12 @@
 #!/bin/bash
 # ==============================================================================
-# MediCab Medical Cabinet - macOS Setup & Installer Script
+# mediacabinet - macOS Setup & Installer Script
 # ==============================================================================
 
 cd "$(dirname "$0")"
 
 echo "=========================================================="
-echo "    🏥 تثبيت وإعداد MediCab Medical Cabinet لنظام Mac"
+echo "    🏥 تثبيت وإعداد mediacabinet لنظام Mac"
 echo "=========================================================="
 echo ""
 
@@ -34,7 +34,7 @@ npm run build
 echo ""
 echo "=========================================================="
 echo "🎯 اختر ما تريد القيام به:"
-echo "1) تشغيل التطبيق مباشرة الآن على الماك (Lancer MediCab)"
+echo "1) تشغيل التطبيق مباشرة الآن على الماك (Lancer mediacabinet)"
 echo "2) إنشاء ملف تثبيت ماك كامل (.dmg) لأجهزة Apple Silicon (M1/M2/M3/M4) و Intel"
 echo "3) خروج"
 echo "=========================================================="
@@ -43,7 +43,7 @@ read -p "أدخل رقم الخيار (1 أو 2 أو 3): " choice
 case $choice in
     1)
         echo ""
-        echo "🚀 جاري تشغيل MediCab..."
+        echo "🚀 جاري تشغيل mediacabinet..."
         npm run dev
         ;;
     2)

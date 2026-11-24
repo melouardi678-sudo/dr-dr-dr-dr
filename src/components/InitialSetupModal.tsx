@@ -92,7 +92,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({ isOpen, on
             <Logo variant="icon" size={42} themeMode="dark" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Configuration Initiale de MediCab
+            Configuration Initiale de mediacabinet
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1.5 font-medium">
             Premier lancement : Veuillez configurer le compte administrateur et les informations de votre cabinet.

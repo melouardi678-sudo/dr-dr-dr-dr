@@ -258,7 +258,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-4 drop-shadow-md">
-            MediCab
+            mediacabinet
           </h1>
 
           <p className="text-lg sm:text-xl font-bold text-sky-200 mb-3">

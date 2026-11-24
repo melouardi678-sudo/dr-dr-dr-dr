@@ -13,16 +13,43 @@ type NetworkChangeListener = (config: NetworkConfig) => void;
 const listeners: Set<NetworkChangeListener> = new Set();
 
 export function getNetworkConfig(): NetworkConfig {
+  let saved: Partial<NetworkConfig> = {};
   try {
     const raw = localStorage.getItem(NETWORK_CONFIG_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return { ...DEFAULT_CONFIG, ...parsed };
+      saved = JSON.parse(raw);
     }
   } catch (err) {
     console.warn('[NetworkConfig] Could not parse stored network config:', err);
   }
-  return { ...DEFAULT_CONFIG };
+
+  if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+    const host = window.location.hostname;
+    const port = Number(window.location.port) || 3000;
+    const isLocalHost = host === '127.0.0.1' || host === 'localhost';
+
+    if (!isLocalHost) {
+      return {
+        ...DEFAULT_CONFIG,
+        ...saved,
+        mode: 'client',
+        serverIp: host,
+        serverPort: port,
+      };
+    }
+
+    if (!saved.mode || saved.mode === 'local') {
+      return {
+        ...DEFAULT_CONFIG,
+        ...saved,
+        mode: 'server',
+        serverIp: '127.0.0.1',
+        serverPort: port,
+      };
+    }
+  }
+
+  return { ...DEFAULT_CONFIG, ...saved };
 }
 
 export function saveNetworkConfig(config: Partial<NetworkConfig>): NetworkConfig {

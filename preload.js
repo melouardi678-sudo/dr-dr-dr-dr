@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
   printDocument: (options) => ipcRenderer.invoke('print-document', options),
   exportPdf: (options) => ipcRenderer.invoke('export-pdf', options),
+  printHtmlDocument: (options) => ipcRenderer.invoke('print-html-document', options),
+  exportHtmlPdf: (options) => ipcRenderer.invoke('export-html-pdf', options),
   minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
   closeWindow: () => ipcRenderer.invoke('window-close'),

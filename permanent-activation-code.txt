@@ -1,0 +1,1126 @@
+﻿
+==================== .\src\utils\license.ts ====================
+--- Line 7 ---
+  import { LicenseInfo } from '../types';
+  import { safeGetItem, safeSetItem } from './safeStorage';
+  
+  const LICENSE_STORAGE_KEY = 'medicab_license_v1';
+  const LAST_SEEN_KEY = '__eaccess_last_ts';
+  const TRIAL_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+>> export const ACTIVATION_CODE_HASH = '58c99481a3325d97c6598dad7d06b1b17633d671657b524d0baaa8d21fbecf86';
+  
+  export function getMachineId(): string {
+    let stored = safeGetItem('medicab_machine_id');
+    if (!stored) {
+      const bytes = new Uint8Array(8);
+      if (globalThis.crypto?.getRandomValues) {
+        globalThis.crypto.getRandomValues(bytes);
+      } else {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+      }
+      const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+      stored = `MC-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}-${hex.slice(12)}`;
+--- Line 42 ---
+      stored = `CLI-${hex.substring(0, 4)}-${hex.substring(4, 8)}-8800`;
+      safeSetItem('medicab_client_id', stored);
+    }
+    return stored;
+  }
+  
+>> export async function verifyActivationCode(code: string): Promise<boolean> {
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) {
+      return false;
+    }
+    if (!globalThis.crypto?.subtle) {
+      throw new Error('Web Crypto is unavailable');
+    }
+  
+    const digest = await globalThis.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(normalizedCode),
+    );
+--- Line 56 ---
+  
+    const digest = await globalThis.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(normalizedCode),
+    );
+    const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+>>   return hash === ACTIVATION_CODE_HASH;
+  }
+  
+  function createTrialLicense(machineId: string, clientId: string, installDate = new Date().toISOString()): LicenseInfo {
+    return {
+      machineId,
+      clientId,
+      cabinetName: 'Cabinet Médical',
+      installDate,
+      trialDays: 7,
+      isActivated: false,
+      licenseType: 'trial',
+    };
+--- Line 66 ---
+    return {
+      machineId,
+      clientId,
+      cabinetName: 'Cabinet Médical',
+      installDate,
+      trialDays: 7,
+>>     isActivated: false,
+      licenseType: 'trial',
+    };
+  }
+  
+  export function loadLicenseInfo(): LicenseInfo {
+    const machineId = getMachineId();
+    const clientId = getClientId(machineId);
+    const raw = safeGetItem(LICENSE_STORAGE_KEY);
+  
+    if (!raw) {
+      const initial = createTrialLicense(machineId, clientId);
+      saveLicenseInfo(initial);
+--- Line 71 ---
+      trialDays: 7,
+      isActivated: false,
+      licenseType: 'trial',
+    };
+  }
+  
+>> export function loadLicenseInfo(): LicenseInfo {
+    const machineId = getMachineId();
+    const clientId = getClientId(machineId);
+    const raw = safeGetItem(LICENSE_STORAGE_KEY);
+  
+    if (!raw) {
+      const initial = createTrialLicense(machineId, clientId);
+      saveLicenseInfo(initial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return initial;
+    }
+  
+    try {
+--- Line 78 ---
+    const machineId = getMachineId();
+    const clientId = getClientId(machineId);
+    const raw = safeGetItem(LICENSE_STORAGE_KEY);
+  
+    if (!raw) {
+      const initial = createTrialLicense(machineId, clientId);
+>>     saveLicenseInfo(initial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return initial;
+    }
+  
+    try {
+      const saved = JSON.parse(raw) as Partial<LicenseInfo>;
+      const savedMachineId = typeof saved.machineId === 'string' ? saved.machineId : machineId;
+      const savedClientId = typeof saved.clientId === 'string' ? saved.clientId : clientId;
+  
+      if (
+        saved.isActivated === true &&
+        saved.licenseType === 'permanent' &&
+--- Line 89 ---
+    try {
+      const saved = JSON.parse(raw) as Partial<LicenseInfo>;
+      const savedMachineId = typeof saved.machineId === 'string' ? saved.machineId : machineId;
+      const savedClientId = typeof saved.clientId === 'string' ? saved.clientId : clientId;
+  
+      if (
+>>       saved.isActivated === true &&
+        saved.licenseType === 'permanent' &&
+        saved.activationVersion === 2 &&
+        saved.activationCodeHash === ACTIVATION_CODE_HASH
+      ) {
+        return {
+          ...saved,
+          machineId,
+          clientId,
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+          installDate: saved.installDate || new Date().toISOString(),
+          trialDays: 0,
+          isActivated: true,
+--- Line 90 ---
+      const saved = JSON.parse(raw) as Partial<LicenseInfo>;
+      const savedMachineId = typeof saved.machineId === 'string' ? saved.machineId : machineId;
+      const savedClientId = typeof saved.clientId === 'string' ? saved.clientId : clientId;
+  
+      if (
+        saved.isActivated === true &&
+>>       saved.licenseType === 'permanent' &&
+        saved.activationVersion === 2 &&
+        saved.activationCodeHash === ACTIVATION_CODE_HASH
+      ) {
+        return {
+          ...saved,
+          machineId,
+          clientId,
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+          installDate: saved.installDate || new Date().toISOString(),
+          trialDays: 0,
+          isActivated: true,
+          licenseType: 'permanent',
+--- Line 92 ---
+      const savedClientId = typeof saved.clientId === 'string' ? saved.clientId : clientId;
+  
+      if (
+        saved.isActivated === true &&
+        saved.licenseType === 'permanent' &&
+        saved.activationVersion === 2 &&
+>>       saved.activationCodeHash === ACTIVATION_CODE_HASH
+      ) {
+        return {
+          ...saved,
+          machineId,
+          clientId,
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+          installDate: saved.installDate || new Date().toISOString(),
+          trialDays: 0,
+          isActivated: true,
+          licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+--- Line 101 ---
+          ...saved,
+          machineId,
+          clientId,
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+          installDate: saved.installDate || new Date().toISOString(),
+          trialDays: 0,
+>>         isActivated: true,
+          licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+        };
+      }
+  
+      if (saved.isActivated === false && saved.licenseType === 'trial' && saved.installDate) {
+        return {
+          ...createTrialLicense(machineId, clientId, saved.installDate),
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+        };
+      }
+--- Line 102 ---
+          machineId,
+          clientId,
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+          installDate: saved.installDate || new Date().toISOString(),
+          trialDays: 0,
+          isActivated: true,
+>>         licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+        };
+      }
+  
+      if (saved.isActivated === false && saved.licenseType === 'trial' && saved.installDate) {
+        return {
+          ...createTrialLicense(machineId, clientId, saved.installDate),
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+        };
+      }
+  
+--- Line 103 ---
+          clientId,
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+          installDate: saved.installDate || new Date().toISOString(),
+          trialDays: 0,
+          isActivated: true,
+          licenseType: 'permanent',
+>>         activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+        };
+      }
+  
+      if (saved.isActivated === false && saved.licenseType === 'trial' && saved.installDate) {
+        return {
+          ...createTrialLicense(machineId, clientId, saved.installDate),
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+        };
+      }
+  
+      const migratedTrial = createTrialLicense(savedMachineId, savedClientId);
+--- Line 108 ---
+          licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+        };
+      }
+  
+>>     if (saved.isActivated === false && saved.licenseType === 'trial' && saved.installDate) {
+        return {
+          ...createTrialLicense(machineId, clientId, saved.installDate),
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+        };
+      }
+  
+      const migratedTrial = createTrialLicense(savedMachineId, savedClientId);
+      saveLicenseInfo(migratedTrial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return migratedTrial;
+    } catch {
+      const resetTrial = createTrialLicense(machineId, clientId);
+--- Line 116 ---
+          ...createTrialLicense(machineId, clientId, saved.installDate),
+          cabinetName: saved.cabinetName || 'Cabinet Médical',
+        };
+      }
+  
+      const migratedTrial = createTrialLicense(savedMachineId, savedClientId);
+>>     saveLicenseInfo(migratedTrial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return migratedTrial;
+    } catch {
+      const resetTrial = createTrialLicense(machineId, clientId);
+      saveLicenseInfo(resetTrial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return resetTrial;
+    }
+  }
+  
+  export function saveLicenseInfo(info: LicenseInfo): void {
+    safeSetItem(LICENSE_STORAGE_KEY, JSON.stringify(info));
+--- Line 121 ---
+      const migratedTrial = createTrialLicense(savedMachineId, savedClientId);
+      saveLicenseInfo(migratedTrial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return migratedTrial;
+    } catch {
+      const resetTrial = createTrialLicense(machineId, clientId);
+>>     saveLicenseInfo(resetTrial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return resetTrial;
+    }
+  }
+  
+  export function saveLicenseInfo(info: LicenseInfo): void {
+    safeSetItem(LICENSE_STORAGE_KEY, JSON.stringify(info));
+  }
+  
+  export interface LicenseStatus {
+    isExpired: boolean;
+    daysRemaining: number;
+--- Line 127 ---
+      saveLicenseInfo(resetTrial);
+      safeSetItem(LAST_SEEN_KEY, String(Date.now()));
+      return resetTrial;
+    }
+  }
+  
+>> export function saveLicenseInfo(info: LicenseInfo): void {
+    safeSetItem(LICENSE_STORAGE_KEY, JSON.stringify(info));
+  }
+  
+  export interface LicenseStatus {
+    isExpired: boolean;
+    daysRemaining: number;
+    hoursRemaining: number;
+    statusText: string;
+  }
+  
+  export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
+    if (
+--- Line 132 ---
+  
+  export function saveLicenseInfo(info: LicenseInfo): void {
+    safeSetItem(LICENSE_STORAGE_KEY, JSON.stringify(info));
+  }
+  
+  export interface LicenseStatus {
+>>   isExpired: boolean;
+    daysRemaining: number;
+    hoursRemaining: number;
+    statusText: string;
+  }
+  
+  export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
+    if (
+      info.isActivated &&
+      info.licenseType === 'permanent' &&
+      info.activationVersion === 2 &&
+      info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+--- Line 138 ---
+    isExpired: boolean;
+    daysRemaining: number;
+    hoursRemaining: number;
+    statusText: string;
+  }
+  
+>> export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
+    if (
+      info.isActivated &&
+      info.licenseType === 'permanent' &&
+      info.activationVersion === 2 &&
+      info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+      return {
+        isExpired: false,
+        daysRemaining: 9999,
+        hoursRemaining: 99999,
+        statusText: 'Licence permanente activée',
+      };
+--- Line 140 ---
+    hoursRemaining: number;
+    statusText: string;
+  }
+  
+  export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
+    if (
+>>     info.isActivated &&
+      info.licenseType === 'permanent' &&
+      info.activationVersion === 2 &&
+      info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+      return {
+        isExpired: false,
+        daysRemaining: 9999,
+        hoursRemaining: 99999,
+        statusText: 'Licence permanente activée',
+      };
+    }
+  
+--- Line 141 ---
+    statusText: string;
+  }
+  
+  export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
+    if (
+      info.isActivated &&
+>>     info.licenseType === 'permanent' &&
+      info.activationVersion === 2 &&
+      info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+      return {
+        isExpired: false,
+        daysRemaining: 9999,
+        hoursRemaining: 99999,
+        statusText: 'Licence permanente activée',
+      };
+    }
+  
+    const now = Date.now();
+--- Line 143 ---
+  
+  export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
+    if (
+      info.isActivated &&
+      info.licenseType === 'permanent' &&
+      info.activationVersion === 2 &&
+>>     info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+      return {
+        isExpired: false,
+        daysRemaining: 9999,
+        hoursRemaining: 99999,
+        statusText: 'Licence permanente activée',
+      };
+    }
+  
+    const now = Date.now();
+    const installTime = Date.parse(info.installDate);
+    const lastSeen = Number(safeGetItem(LAST_SEEN_KEY));
+--- Line 146 ---
+      info.isActivated &&
+      info.licenseType === 'permanent' &&
+      info.activationVersion === 2 &&
+      info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+      return {
+>>       isExpired: false,
+        daysRemaining: 9999,
+        hoursRemaining: 99999,
+        statusText: 'Licence permanente activée',
+      };
+    }
+  
+    const now = Date.now();
+    const installTime = Date.parse(info.installDate);
+    const lastSeen = Number(safeGetItem(LAST_SEEN_KEY));
+    const clockMovedBackwards = Number.isFinite(lastSeen) && lastSeen > 0 && now < lastSeen;
+    safeSetItem(LAST_SEEN_KEY, String(Number.isFinite(lastSeen) ? Math.max(lastSeen, now) : now));
+  
+--- Line 149 ---
+      info.activationCodeHash === ACTIVATION_CODE_HASH
+    ) {
+      return {
+        isExpired: false,
+        daysRemaining: 9999,
+        hoursRemaining: 99999,
+>>       statusText: 'Licence permanente activée',
+      };
+    }
+  
+    const now = Date.now();
+    const installTime = Date.parse(info.installDate);
+    const lastSeen = Number(safeGetItem(LAST_SEEN_KEY));
+    const clockMovedBackwards = Number.isFinite(lastSeen) && lastSeen > 0 && now < lastSeen;
+    safeSetItem(LAST_SEEN_KEY, String(Number.isFinite(lastSeen) ? Math.max(lastSeen, now) : now));
+  
+    const remainingMs = Number.isFinite(installTime)
+      ? installTime + TRIAL_DURATION_MS - now
+      : 0;
+--- Line 162 ---
+    const clockMovedBackwards = Number.isFinite(lastSeen) && lastSeen > 0 && now < lastSeen;
+    safeSetItem(LAST_SEEN_KEY, String(Number.isFinite(lastSeen) ? Math.max(lastSeen, now) : now));
+  
+    const remainingMs = Number.isFinite(installTime)
+      ? installTime + TRIAL_DURATION_MS - now
+      : 0;
+>>   const isExpired = clockMovedBackwards || remainingMs <= 0;
+    const daysRemaining = Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
+    const hoursRemaining = Math.max(0, Math.ceil(remainingMs / (60 * 60 * 1000)));
+  
+    return {
+      isExpired,
+      daysRemaining,
+      hoursRemaining,
+      statusText: isExpired
+        ? "Période d'essai terminée"
+        : `Essai gratuit : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`,
+    };
+  }
+--- Line 167 ---
+      : 0;
+    const isExpired = clockMovedBackwards || remainingMs <= 0;
+    const daysRemaining = Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
+    const hoursRemaining = Math.max(0, Math.ceil(remainingMs / (60 * 60 * 1000)));
+  
+    return {
+>>     isExpired,
+      daysRemaining,
+      hoursRemaining,
+      statusText: isExpired
+        ? "Période d'essai terminée"
+        : `Essai gratuit : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`,
+    };
+  }
+--- Line 170 ---
+    const hoursRemaining = Math.max(0, Math.ceil(remainingMs / (60 * 60 * 1000)));
+  
+    return {
+      isExpired,
+      daysRemaining,
+      hoursRemaining,
+>>     statusText: isExpired
+        ? "Période d'essai terminée"
+        : `Essai gratuit : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`,
+    };
+  }
+==================== .\src\components\ActivationModal.tsx ====================
+--- Line 4 ---
+  import React, { useState } from 'react';
+  import { Check, Copy, HelpCircle, Key, ShieldAlert, X } from 'lucide-react';
+  import { LicenseInfo } from '../types';
+>> import { ACTIVATION_CODE_HASH, verifyActivationCode, saveLicenseInfo, LicenseStatus } from '../utils/license';
+  import { Logo } from './Logo';
+  
+  interface ActivationModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    licenseInfo: LicenseInfo;
+    licenseStatus: LicenseStatus;
+    onLicenseUpdated: (updated: LicenseInfo) => void;
+    isMandatoryBlock?: boolean;
+  }
+  
+  export const ActivationModal: React.FC<ActivationModalProps> = ({
+--- Line 7 ---
+  import React, { useState } from 'react';
+  import { Check, Copy, HelpCircle, Key, ShieldAlert, X } from 'lucide-react';
+  import { LicenseInfo } from '../types';
+  import { ACTIVATION_CODE_HASH, verifyActivationCode, saveLicenseInfo, LicenseStatus } from '../utils/license';
+  import { Logo } from './Logo';
+  
+>> interface ActivationModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    licenseInfo: LicenseInfo;
+    licenseStatus: LicenseStatus;
+    onLicenseUpdated: (updated: LicenseInfo) => void;
+    isMandatoryBlock?: boolean;
+  }
+  
+  export const ActivationModal: React.FC<ActivationModalProps> = ({
+    isOpen,
+    onClose,
+    licenseInfo,
+--- Line 16 ---
+    licenseInfo: LicenseInfo;
+    licenseStatus: LicenseStatus;
+    onLicenseUpdated: (updated: LicenseInfo) => void;
+    isMandatoryBlock?: boolean;
+  }
+  
+>> export const ActivationModal: React.FC<ActivationModalProps> = ({
+    isOpen,
+    onClose,
+    licenseInfo,
+    licenseStatus,
+    onLicenseUpdated,
+    isMandatoryBlock = false,
+  }) => {
+    const [activationCode, setActivationCode] = useState('');
+    const [copied, setCopied] = useState(false);
+    const [isActivating, setIsActivating] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
+--- Line 55 ---
+        setErrorMsg("Code d'activation invalide.");
+        return;
+      }
+  
+      setIsActivating(true);
+      try {
+>>       const isValid = await verifyActivationCode(activationCode);
+        if (!isValid) {
+          setErrorMsg("Code d'activation invalide.");
+          return;
+        }
+  
+        const updated: LicenseInfo = {
+          ...licenseInfo,
+          isActivated: true,
+          trialDays: 0,
+          licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+--- Line 63 ---
+          setErrorMsg("Code d'activation invalide.");
+          return;
+        }
+  
+        const updated: LicenseInfo = {
+          ...licenseInfo,
+>>         isActivated: true,
+          trialDays: 0,
+          licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+          expiryDate: undefined,
+        };
+  
+        saveLicenseInfo(updated);
+        setSuccessMsg('Activation réussie. Votre licence est permanente.');
+        window.setTimeout(() => {
+          onLicenseUpdated(updated);
+          if (!isMandatoryBlock) onClose();
+--- Line 65 ---
+        }
+  
+        const updated: LicenseInfo = {
+          ...licenseInfo,
+          isActivated: true,
+          trialDays: 0,
+>>         licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+          expiryDate: undefined,
+        };
+  
+        saveLicenseInfo(updated);
+        setSuccessMsg('Activation réussie. Votre licence est permanente.');
+        window.setTimeout(() => {
+          onLicenseUpdated(updated);
+          if (!isMandatoryBlock) onClose();
+        }, 1600);
+      } catch {
+--- Line 66 ---
+  
+        const updated: LicenseInfo = {
+          ...licenseInfo,
+          isActivated: true,
+          trialDays: 0,
+          licenseType: 'permanent',
+>>         activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+          expiryDate: undefined,
+        };
+  
+        saveLicenseInfo(updated);
+        setSuccessMsg('Activation réussie. Votre licence est permanente.');
+        window.setTimeout(() => {
+          onLicenseUpdated(updated);
+          if (!isMandatoryBlock) onClose();
+        }, 1600);
+      } catch {
+        setErrorMsg('Une erreur est survenue lors de la vérification de la licence.');
+--- Line 71 ---
+          licenseType: 'permanent',
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+          expiryDate: undefined,
+        };
+  
+>>       saveLicenseInfo(updated);
+        setSuccessMsg('Activation réussie. Votre licence est permanente.');
+        window.setTimeout(() => {
+          onLicenseUpdated(updated);
+          if (!isMandatoryBlock) onClose();
+        }, 1600);
+      } catch {
+        setErrorMsg('Une erreur est survenue lors de la vérification de la licence.');
+      } finally {
+        setIsActivating(false);
+      }
+    };
+  
+--- Line 72 ---
+          activationCodeHash: ACTIVATION_CODE_HASH,
+          activationVersion: 2,
+          expiryDate: undefined,
+        };
+  
+        saveLicenseInfo(updated);
+>>       setSuccessMsg('Activation réussie. Votre licence est permanente.');
+        window.setTimeout(() => {
+          onLicenseUpdated(updated);
+          if (!isMandatoryBlock) onClose();
+        }, 1600);
+      } catch {
+        setErrorMsg('Une erreur est survenue lors de la vérification de la licence.');
+      } finally {
+        setIsActivating(false);
+      }
+    };
+  
+    return (
+--- Line 106 ---
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+  
+          <form onSubmit={handleActivate} className="space-y-5 p-6">
+>>           {licenseStatus.isExpired && !licenseInfo.isActivated && (
+              <div className="flex gap-3 rounded-xl border border-rose-800 bg-rose-950/70 p-3 text-sm text-rose-100">
+                <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" />
+                <div className="space-y-1">
+                  <h3 className="font-bold">Période d'essai terminée</h3>
+                  <p>Votre période d'essai de 7 jours est terminée.</p>
+                  <p>Veuillez contacter l'administration MEDIACAB pour obtenir votre code d'activation.</p>
+                </div>
+              </div>
+            )}
+  
+            <section className="space-y-3">
+              <div>
+--- Line 170 ---
+              </p>
+            )}
+  
+            <div className="flex items-center justify-between gap-3 border-t border-slate-800 pt-4">
+              <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <HelpCircle className="h-4 w-4 shrink-0 text-slate-500" />
+>>               Licence permanente, sans expiration.
+              </p>
+              <button
+                type="submit"
+                disabled={isActivating || Boolean(successMsg)}
+                className="flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-emerald-900/40 transition hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-60"
+              >
+                <Key className="h-4 w-4" />
+                <span>{isActivating ? 'Vérification…' : 'Activer'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+==================== .\src\components\AboutModal.tsx ====================
+--- Line 5 ---
+  import React from 'react';
+  import { Logo } from './Logo';
+  import { X, ShieldCheck, Mail, Building2, AppWindow, BadgeCheck } from 'lucide-react';
+  import { LicenseInfo } from '../types';
+>> import { LicenseStatus, getLicenseStatus } from '../utils/license';
+  
+  interface AboutModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    licenseInfo: LicenseInfo;
+    licenseStatus?: LicenseStatus;
+  }
+  
+  export const AboutModal: React.FC<AboutModalProps> = ({
+    isOpen,
+    onClose,
+    licenseInfo,
+--- Line 22 ---
+    onClose,
+    licenseInfo,
+    licenseStatus: customStatus,
+  }) => {
+    if (!isOpen) return null;
+  
+>>   const status = customStatus || getLicenseStatus(licenseInfo);
+  
+    // Compute License Display Text
+    const licenseText = 'Licence Illimitée (Permanente)';
+  
+    return (
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-sans select-none animate-in fade-in duration-200">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-md w-full text-slate-100 overflow-hidden relative">
+          {/* Subtle Gradient Accent Header */}
+          <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />
+  
+          {/* Close Button */}
+          <button
+--- Line 25 ---
+  }) => {
+    if (!isOpen) return null;
+  
+    const status = customStatus || getLicenseStatus(licenseInfo);
+  
+    // Compute License Display Text
+>>   const licenseText = 'Licence Illimitée (Permanente)';
+  
+    return (
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-sans select-none animate-in fade-in duration-200">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-md w-full text-slate-100 overflow-hidden relative">
+          {/* Subtle Gradient Accent Header */}
+          <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500" />
+  
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition"
+            aria-label="Close"
+==================== .\src\components\views\SettingsView.tsx ====================
+--- Line 5 ---
+  import React, { useState } from 'react';
+  import { Settings, Save, CheckCircle2, Globe, Moon, Sun, Upload, Shield, Info, ExternalLink, Lock, Mail, AlertCircle, Users, Key, Building, Wifi, Printer, Plus, Trash2, ReceiptText } from 'lucide-react';
+  import { Logo } from '../Logo';
+  import { CabinetSettings, AppUser } from '../../types';
+>> import { loadLicenseInfo, getLicenseStatus } from '../../utils/license';
+  import { hashPasswordWithSalt, generateSalt } from '../../utils/auth';
+  import { StaffManagementSection } from '../StaffManagementSection';
+  import { NetworkSettingsSection } from '../NetworkSettingsSection';
+  import { PrescriptionPrintSettingsSection } from '../PrescriptionPrintSettingsSection';
+  import { MEDICAL_SPECIALTY_OPTIONS, buildSpecialtyManagement, getSpecialtyCategory } from '../../utils/medicalSpecialties';
+  
+  interface SettingsViewProps {
+    settings: CabinetSettings;
+    onSaveSettings: (settings: CabinetSettings) => void;
+    theme: 'light' | 'dark';
+    onToggleTheme: () => void;
+    currentUser: AppUser;
+--- Line 735 ---
+                </button>
+              </div>
+            </div>
+  
+            {/* About Window Section */}
+            {(() => {
+>>             const licenseInfo = loadLicenseInfo();
+              const licenseStatus = getLicenseStatus(licenseInfo);
+              const licenseText = licenseInfo.isActivated
+                ? 'Licence permanente activée'
+                : licenseStatus.statusText;
+  
+              return (
+                <div className="pt-4 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center space-x-2 text-white font-bold text-xs">
+                    <Info className="w-4 h-4 text-sky-400" />
+                    <span>À Propos du Logiciel</span>
+                  </div>
+  
+--- Line 736 ---
+              </div>
+            </div>
+  
+            {/* About Window Section */}
+            {(() => {
+              const licenseInfo = loadLicenseInfo();
+>>             const licenseStatus = getLicenseStatus(licenseInfo);
+              const licenseText = licenseInfo.isActivated
+                ? 'Licence permanente activée'
+                : licenseStatus.statusText;
+  
+              return (
+                <div className="pt-4 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center space-x-2 text-white font-bold text-xs">
+                    <Info className="w-4 h-4 text-sky-400" />
+                    <span>À Propos du Logiciel</span>
+                  </div>
+  
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800/90 space-y-3 shadow-inner">
+--- Line 737 ---
+            </div>
+  
+            {/* About Window Section */}
+            {(() => {
+              const licenseInfo = loadLicenseInfo();
+              const licenseStatus = getLicenseStatus(licenseInfo);
+>>             const licenseText = licenseInfo.isActivated
+                ? 'Licence permanente activée'
+                : licenseStatus.statusText;
+  
+              return (
+                <div className="pt-4 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center space-x-2 text-white font-bold text-xs">
+                    <Info className="w-4 h-4 text-sky-400" />
+                    <span>À Propos du Logiciel</span>
+                  </div>
+  
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800/90 space-y-3 shadow-inner">
+                    <div className="flex items-center justify-center py-2">
+--- Line 738 ---
+  
+            {/* About Window Section */}
+            {(() => {
+              const licenseInfo = loadLicenseInfo();
+              const licenseStatus = getLicenseStatus(licenseInfo);
+              const licenseText = licenseInfo.isActivated
+>>               ? 'Licence permanente activée'
+                : licenseStatus.statusText;
+  
+              return (
+                <div className="pt-4 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center space-x-2 text-white font-bold text-xs">
+                    <Info className="w-4 h-4 text-sky-400" />
+                    <span>À Propos du Logiciel</span>
+                  </div>
+  
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800/90 space-y-3 shadow-inner">
+                    <div className="flex items-center justify-center py-2">
+                      <Logo variant="full" size="md" themeMode="dark" />
+==================== .\src\App.tsx ====================
+--- Line 10 ---
+   */
+  
+  import React, { useState, useEffect } from 'react';
+  import { Logo } from './components/Logo';
+  import { HeaderBar } from './components/HeaderBar';
+  import { Sidebar, NavTab } from './components/Sidebar';
+>> import { ActivationModal } from './components/ActivationModal';
+  import { LoginModal } from './components/LoginModal';
+  import { AboutModal } from './components/AboutModal';
+  import { PrintableDocument, PrintableDocType } from './components/PrintableDocument';
+  import { PrintOptionsModal } from './components/PrintOptionsModal';
+  import { BioPrescriptionModal } from './components/BioPrescriptionModal';
+  import { NetworkConnectionBanner } from './components/NetworkConnectionBanner';
+  import { NetworkModal } from './components/NetworkModal';
+  import { syncClient } from './utils/syncClient';
+  import { getNetworkConfig } from './utils/networkConfig';
+  
+  import { DashboardView } from './components/views/DashboardView';
+  import { AgendaView } from './components/views/AgendaView';
+--- Line 55 ---
+    Invoice,
+    Expense,
+    StockItem,
+  } from './types';
+  
+  import {
+>>   loadLicenseInfo,
+    getLicenseStatus,
+    LicenseStatus,
+  } from './utils/license';
+  
+  
+  import {
+    getSettings,
+    saveSettings,
+    getCurrentUser,
+    setCurrentUser,
+    updateUser,
+    getUsers,
+--- Line 56 ---
+    Expense,
+    StockItem,
+  } from './types';
+  
+  import {
+    loadLicenseInfo,
+>>   getLicenseStatus,
+    LicenseStatus,
+  } from './utils/license';
+  
+  
+  import {
+    getSettings,
+    saveSettings,
+    getCurrentUser,
+    setCurrentUser,
+    updateUser,
+    getUsers,
+    getPatients,
+--- Line 104 ---
+    useEffect(() => {
+      const timer = setTimeout(() => setShowSplashScreen(false), 1400);
+      return () => clearTimeout(timer);
+    }, []);
+  
+    // License State
+>>   const [licenseInfo, setLicenseInfo] = useState<LicenseInfo>(() => loadLicenseInfo());
+    const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>(() => getLicenseStatus(licenseInfo));
+  
+    // User & Settings
+    const [currentUser, setAppCurrentUser] = useState<AppUser>(() => getCurrentUser() || { id: 'usr_default', username: '', fullName: '', role: 'admin', email: '', passwordHash: '', passwordSalt: '' });
+    const [settings, setCabinetSettings] = useState<CabinetSettings>(() => getSettings());
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!getCurrentUser());
+  
+    // Sync theme class to documentElement and body for system-wide light/dark mode
+    useEffect(() => {
+      const isLight = settings.theme === 'light';
+      const root = document.documentElement;
+      const body = document.body;
+--- Line 105 ---
+      const timer = setTimeout(() => setShowSplashScreen(false), 1400);
+      return () => clearTimeout(timer);
+    }, []);
+  
+    // License State
+    const [licenseInfo, setLicenseInfo] = useState<LicenseInfo>(() => loadLicenseInfo());
+>>   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>(() => getLicenseStatus(licenseInfo));
+  
+    // User & Settings
+    const [currentUser, setAppCurrentUser] = useState<AppUser>(() => getCurrentUser() || { id: 'usr_default', username: '', fullName: '', role: 'admin', email: '', passwordHash: '', passwordSalt: '' });
+    const [settings, setCabinetSettings] = useState<CabinetSettings>(() => getSettings());
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!getCurrentUser());
+  
+    // Sync theme class to documentElement and body for system-wide light/dark mode
+    useEffect(() => {
+      const isLight = settings.theme === 'light';
+      const root = document.documentElement;
+      const body = document.body;
+      if (isLight) {
+--- Line 281 ---
+        data: printOptionsState.data,
+      });
+    };
+  
+    // Re-calculate license status periodically or on update
+    useEffect(() => {
+>>     const status = getLicenseStatus(licenseInfo);
+      setLicenseStatus(status);
+      if (!licenseInfo.isActivated && status.daysRemaining <= 2) {
+        setIsActivationOpen(true);
+      }
+    }, [licenseInfo]);
+  
+    // Persist handlers
+    const handleSavePatients = (updated: Patient[]) => {
+      setPatients(updated);
+      savePatients(updated);
+    };
+  
+--- Line 283 ---
+    };
+  
+    // Re-calculate license status periodically or on update
+    useEffect(() => {
+      const status = getLicenseStatus(licenseInfo);
+      setLicenseStatus(status);
+>>     if (!licenseInfo.isActivated && status.daysRemaining <= 2) {
+        setIsActivationOpen(true);
+      }
+    }, [licenseInfo]);
+  
+    // Persist handlers
+    const handleSavePatients = (updated: Patient[]) => {
+      setPatients(updated);
+      savePatients(updated);
+    };
+  
+    const handleSaveAppointments = (updated: Appointment[]) => {
+      setAppointments(updated);
+--- Line 444 ---
+          <LoginModal
+            isOpen={true}
+            isFullScreen={true}
+            currentUser={currentUser}
+            onSelectUser={handleSelectUser}
+          />
+>>         {licenseStatus.isExpired && !licenseInfo.isActivated && (
+            <ActivationModal
+              isOpen={true}
+              onClose={() => setIsActivationOpen(false)}
+              licenseInfo={licenseInfo}
+              licenseStatus={licenseStatus}
+              onLicenseUpdated={setLicenseInfo}
+              isMandatoryBlock={true}
+            />
+          )}
+        </>
+      );
+    }
+--- Line 445 ---
+            isOpen={true}
+            isFullScreen={true}
+            currentUser={currentUser}
+            onSelectUser={handleSelectUser}
+          />
+          {licenseStatus.isExpired && !licenseInfo.isActivated && (
+>>           <ActivationModal
+              isOpen={true}
+              onClose={() => setIsActivationOpen(false)}
+              licenseInfo={licenseInfo}
+              licenseStatus={licenseStatus}
+              onLicenseUpdated={setLicenseInfo}
+              isMandatoryBlock={true}
+            />
+          )}
+        </>
+      );
+    }
+  
+--- Line 713 ---
+              handleRequestPrint(type, data, 'Prescription Bilan Biologique')
+            }
+          />
+        )}
+  
+        {/* License activation modal, available manually from the application menu. */}
+>>       {(isActivationOpen || (licenseStatus.isExpired && !licenseInfo.isActivated)) && (
+          <ActivationModal
+            isOpen={true}
+            onClose={() => setIsActivationOpen(false)}
+            licenseInfo={licenseInfo}
+            licenseStatus={licenseStatus}
+            onLicenseUpdated={(updated) => {
+              setLicenseInfo(updated);
+              setIsActivationOpen(false);
+            }}
+            isMandatoryBlock={licenseStatus.isExpired && !licenseInfo.isActivated}
+          />
+        )}
+--- Line 714 ---
+            }
+          />
+        )}
+  
+        {/* License activation modal, available manually from the application menu. */}
+        {(isActivationOpen || (licenseStatus.isExpired && !licenseInfo.isActivated)) && (
+>>         <ActivationModal
+            isOpen={true}
+            onClose={() => setIsActivationOpen(false)}
+            licenseInfo={licenseInfo}
+            licenseStatus={licenseStatus}
+            onLicenseUpdated={(updated) => {
+              setLicenseInfo(updated);
+              setIsActivationOpen(false);
+            }}
+            isMandatoryBlock={licenseStatus.isExpired && !licenseInfo.isActivated}
+          />
+        )}
+  
+--- Line 723 ---
+            licenseInfo={licenseInfo}
+            licenseStatus={licenseStatus}
+            onLicenseUpdated={(updated) => {
+              setLicenseInfo(updated);
+              setIsActivationOpen(false);
+            }}
+>>           isMandatoryBlock={licenseStatus.isExpired && !licenseInfo.isActivated}
+          />
+        )}
+  
+        {/* Login & User Switch Modal */}
+        {isLoginOpen && (
+          <LoginModal
+            isOpen={isLoginOpen}
+            onClose={() => setIsLoginOpen(false)}
+            currentUser={currentUser}
+            onSelectUser={handleSelectUser}
+          />
+        )}

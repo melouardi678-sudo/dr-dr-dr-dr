@@ -595,7 +595,7 @@ export const MedicationsView: React.FC<MedicationsViewProps> = ({
             <Layers className="w-4 h-4 text-cyan-400" />
           </div>
           <div className="text-xl font-bold text-white">{stats.total}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Enregistrés dans MediCab</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Enregistrés dans mediacabinet</div>
         </div>
 
         <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl shadow">

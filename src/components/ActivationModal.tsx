@@ -1,19 +1,8 @@
 import React, { useState } from 'react';
+import { Check, Copy, HelpCircle, Key, ShieldAlert, X } from 'lucide-react';
+import { LicenseInfo } from '../types';
+import { ACTIVATION_CODE_HASH, verifyActivationCode, saveLicenseInfo, LicenseStatus } from '../utils/license';
 import { Logo } from './Logo';
-import {
-  Key,
-  Copy,
-  Check,
-  ShieldCheck,
-  ShieldAlert,
-  X,
-  Sparkles,
-  Lock,
-  Building,
-  HelpCircle,
-} from 'lucide-react';
-import { LicenseInfo, LicenseType } from '../types';
-import { verifyActivationCode, saveLicenseInfo, LicenseStatus } from '../utils/license';
 
 interface ActivationModalProps {
   isOpen: boolean;
@@ -32,22 +21,26 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
   onLicenseUpdated,
   isMandatoryBlock = false,
 }) => {
-  const [cabinetName, setCabinetName] = useState(licenseInfo.cabinetName || 'Cabinet Médical');
   const [activationCode, setActivationCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   if (!isOpen && !isMandatoryBlock) return null;
 
-  const handleCopyAllInfo = () => {
-    const textToCopy = `Nom du Cabinet: ${cabinetName}\nClient ID: ${licenseInfo.clientId}\nMachine ID: ${licenseInfo.machineId}`;
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleCopyMachineId = async () => {
+    try {
+      await navigator.clipboard.writeText(licenseInfo.machineId);
+      setCopied(true);
+      setErrorMsg('');
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setErrorMsg('Impossible de copier l’identifiant. Veuillez le sélectionner et le copier manuellement.');
+    }
   };
 
-  const handleActivate = (e: React.FormEvent) => {
+  const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -57,204 +50,132 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
       return;
     }
 
-    const verification = verifyActivationCode(licenseInfo.clientId, licenseInfo.machineId, activationCode);
+    setIsActivating(true);
+    try {
+      const isValid = await verifyActivationCode(activationCode);
+      if (!isValid) {
+        setErrorMsg("Code d'activation invalide.");
+        return;
+      }
 
-    if (verification.isValid && verification.type) {
       const updated: LicenseInfo = {
         ...licenseInfo,
-        cabinetName,
         isActivated: true,
-        activationCode,
+        trialDays: 0,
         licenseType: 'permanent',
+        activationCodeHash: ACTIVATION_CODE_HASH,
+        activationVersion: 2,
         expiryDate: undefined,
       };
 
       saveLicenseInfo(updated);
-      onLicenseUpdated(updated);
-      setSuccessMsg('Licence Permanente Activée');
-      setTimeout(() => {
-        setSuccessMsg('');
+      setSuccessMsg('Activation réussie. Votre licence est permanente.');
+      window.setTimeout(() => {
+        onLicenseUpdated(updated);
         if (!isMandatoryBlock) onClose();
-      }, 2000);
-    } else {
-      setErrorMsg("Code d'activation invalide.");
+      }, 1600);
+    } catch {
+      setErrorMsg('Une erreur est survenue lors de la vérification de la licence.');
+    } finally {
+      setIsActivating(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-lg w-full text-slate-100 overflow-hidden relative">
-        {/* Header */}
-        <div className="bg-slate-800/80 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Logo variant="icon" size={38} themeMode="dark" />
-            <div>
-              <h3 className="font-extrabold text-base text-white tracking-wide">E-ACCESS WEB</h3>
-              <p className="text-xs text-sky-400 font-medium">Activation du Logiciel — Medical Software Solutions</p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-slate-700 bg-slate-800/80 px-6 py-4">
+          <Logo variant="icon" size={40} themeMode="dark" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold tracking-wide text-white">MEDIACAB</h2>
+            <p className="text-xs font-medium text-sky-400">Activation du logiciel</p>
           </div>
           {!isMandatoryBlock && (
             <button
+              type="button"
               onClick={onClose}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition"
+              aria-label="Fermer"
+              className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-700 hover:text-white"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           )}
         </div>
 
-        {/* Status banner */}
-        <div
-          className={`px-6 py-3 text-xs flex items-center space-x-2 border-b ${
-            licenseStatus.isExpired
-              ? 'bg-rose-950/80 text-rose-200 border-rose-800'
-              : licenseInfo.isActivated
-              ? 'bg-emerald-950/80 text-emerald-200 border-emerald-800'
-              : 'bg-amber-950/80 text-amber-200 border-amber-800'
-          }`}
-        >
-          {licenseStatus.isExpired ? (
-            <>
-              <Lock className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>
-                <strong>Activation :</strong> Saisissez votre code d'activation permanent pour enregistrer cette installation.
-              </span>
-            </>
-          ) : licenseInfo.isActivated ? (
-            <>
-              <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span>
-                <strong>Licence Active :</strong> {licenseStatus.statusText}
-              </span>
-            </>
-          ) : (
-            <>
-              <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
-              <span>
-                Licence permanente disponible sur cette installation.
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Body Form */}
-        <form onSubmit={handleActivate} className="p-6 space-y-4">
-          {/* Cabinet Name */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center space-x-1">
-              <Building className="w-3.5 h-3.5 text-slate-400" />
-              <span>Nom du Cabinet</span>
-            </label>
-            <input
-              type="text"
-              value={cabinetName}
-              onChange={(e) => setCabinetName(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500"
-              placeholder="ex: Cabinet de Médecine Générale"
-            />
-          </div>
-
-          {/* Client ID & Machine ID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Client ID
-              </label>
-              <div className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-xs text-amber-400 font-bold select-all tracking-wider">
-                {licenseInfo.clientId}
+        <form onSubmit={handleActivate} className="space-y-5 p-6">
+          {licenseStatus.isExpired && !licenseInfo.isActivated && (
+            <div className="flex gap-3 rounded-xl border border-rose-800 bg-rose-950/70 p-3 text-sm text-rose-100">
+              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" />
+              <div className="space-y-1">
+                <h3 className="font-bold">Période d'essai terminée</h3>
+                <p>Votre période d'essai de 7 jours est terminée.</p>
+                <p>Veuillez contacter l'administration MEDIACAB pour obtenir votre code d'activation.</p>
               </div>
             </div>
+          )}
 
+          <section className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Machine ID
+              <label className="mb-1.5 block text-xs font-semibold text-slate-300">
+                Identifiant de cet ordinateur (Machine ID)
               </label>
-              <div className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg font-mono text-xs text-emerald-400 font-bold select-all tracking-wider">
+              <div className="select-all rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-sm font-bold tracking-wider text-emerald-300">
                 {licenseInfo.machineId}
               </div>
             </div>
-          </div>
-
-          {/* Copy Information Button */}
-          <div>
             <button
               type="button"
-              onClick={handleCopyAllInfo}
-              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition"
+              onClick={handleCopyMachineId}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
             >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400 font-bold">Informations copiées !</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-sky-400" />
-                  <span>Copier les informations</span>
-                </>
-              )}
+              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-sky-400" />}
+              <span>{copied ? 'Code copié' : 'Copier le code'}</span>
             </button>
-            <p className="text-[11px] text-slate-400 mt-1 text-center">
-              Transmettez ces informations à l’éditeur pour obtenir votre code d'activation.
+            <p className="text-center text-[11px] text-slate-400">
+              Veuillez copier cet identifiant et l'envoyer à l'administration MEDIACAB.
             </p>
-          </div>
+          </section>
 
-          {/* Activation Code */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Code d'Activation
+          <section className="space-y-2">
+            <label htmlFor="medicab-activation-code" className="block text-xs font-semibold text-slate-300">
+              Code d'activation
             </label>
             <input
+              id="medicab-activation-code"
               type="text"
+              autoComplete="off"
+              spellCheck={false}
               value={activationCode}
-              onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
-              placeholder="ex: PRM-XXXXX-YYYYY"
-              className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg font-mono text-xs text-white focus:outline-none focus:border-emerald-500 uppercase tracking-widest"
+              onChange={(event) => setActivationCode(event.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 font-mono text-sm uppercase tracking-widest text-white outline-none focus:border-emerald-500"
+              placeholder="Saisissez votre code"
             />
-          </div>
+          </section>
 
-          {/* Messages */}
           {errorMsg && (
-            <div className="p-2.5 bg-rose-950/80 border border-rose-800 text-rose-200 rounded-lg text-xs flex items-center space-x-2">
-              <X className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
+            <p role="alert" className="rounded-lg border border-rose-800 bg-rose-950/70 p-2.5 text-xs text-rose-200">
+              {errorMsg}
+            </p>
           )}
-
           {successMsg && (
-            <div className="p-2.5 bg-emerald-950/80 border border-emerald-800 text-emerald-200 rounded-lg text-xs flex items-center space-x-2">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
+            <p role="status" className="flex items-center gap-2 rounded-lg border border-emerald-800 bg-emerald-950/70 p-2.5 text-xs text-emerald-200">
+              <Check className="h-4 w-4 shrink-0" />
+              {successMsg}
+            </p>
           )}
 
-          {/* Help box */}
-          <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1">
-            <div className="flex items-center space-x-1 font-semibold text-emerald-300">
-              <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Licence Permanente</span>
-            </div>
-            <p className="text-slate-300 font-medium">Activation permanente. Aucun abonnement. Aucune expiration.</p>
-          </div>
-
-          {/* Action Button */}
-          <div className="pt-2 flex items-center justify-end space-x-3">
-            {!isMandatoryBlock && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
-              >
-                Fermer
-              </button>
-            )}
+          <div className="flex items-center justify-between gap-3 border-t border-slate-800 pt-4">
+            <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <HelpCircle className="h-4 w-4 shrink-0 text-slate-500" />
+              Licence permanente, sans expiration.
+            </p>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-emerald-900/40 flex items-center space-x-2 transition"
+              disabled={isActivating || Boolean(successMsg)}
+              className="flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-emerald-900/40 transition hover:bg-emerald-500 disabled:cursor-wait disabled:opacity-60"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Activer MediCab</span>
+              <Key className="h-4 w-4" />
+              <span>{isActivating ? 'Vérification…' : 'Activer'}</span>
             </button>
           </div>
         </form>

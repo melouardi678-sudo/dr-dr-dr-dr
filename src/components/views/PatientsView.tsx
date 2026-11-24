@@ -987,6 +987,50 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                         <strong className="text-slate-300">Plan de Traitement : </strong>
                         <span className="text-slate-400">{c.treatmentPlan}</span>
                       </div>
+                      {c.dentalDetails && (
+                        <details className="rounded-lg border border-emerald-900/60 bg-slate-900 p-3">
+                          <summary className="cursor-pointer font-bold text-emerald-300">Dossier dentaire · {c.dentalDetails.procedure}</summary>
+                          <div className="mt-2 space-y-2 text-slate-300">
+                            <p><strong>Odontogramme FDI :</strong> {Object.entries(c.dentalDetails.toothDetails || {})
+                              .filter(([, tooth]) => tooth.status !== 'Dent Saine' || tooth.diagnosis || Object.keys(tooth.surfaces || {}).length > 0)
+                              .map(([number, tooth]) => `${number} ${tooth.status}${tooth.diagnosis ? ` (${tooth.diagnosis})` : ''}`)
+                              .concat(Object.entries(c.dentalDetails.toothStatuses || {})
+                                .filter(([number, status]) => !c.dentalDetails?.toothDetails?.[number] && status !== 'Dent Saine')
+                                .map(([number, status]) => `${number} ${status}`))
+                              .join(' · ') || 'Aucune anomalie enregistrée'}</p>
+                            <p><strong>Surfaces :</strong> {Object.entries(c.dentalDetails.toothDetails || {}).flatMap(([number, tooth]) =>
+                              Object.entries(tooth.surfaces || {}).map(([surface, status]) => `${number}-${surface}: ${status}`),
+                            ).join(' · ') || 'Aucune surface modifiée'}</p>
+                            <p><strong>Plan / notes :</strong> {c.dentalDetails.treatmentPlan || '—'} {c.dentalDetails.sessionNotes && `· ${c.dentalDetails.sessionNotes}`}</p>
+                            <p><strong>Coût / payé / restant :</strong> {c.dentalDetails.procedureCost} / {c.dentalDetails.amountPaid} / {Math.max(0, c.dentalDetails.procedureCost - c.dentalDetails.amountPaid)} {settings.currency}</p>
+                            {(c.dentalDetails.treatments || []).length > 0 && (
+                              <div className="overflow-x-auto">
+                                <table className="w-full min-w-[560px] text-left text-[10px]">
+                                  <thead><tr>{['Date', 'Dent FDI', 'Diagnostic', 'Traitement', 'Prix', 'Paiement', 'Notes'].map((column) => <th key={column} className="p-1.5">{column}</th>)}</tr></thead>
+                                  <tbody>{c.dentalDetails.treatments?.map((treatment) => (
+                                    <tr key={treatment.id} className="border-t border-slate-700">
+                                      <td className="p-1.5">{treatment.date}</td><td className="p-1.5">{treatment.toothNumber}</td><td className="p-1.5">{treatment.diagnosis}</td><td className="p-1.5">{treatment.treatment}</td><td className="p-1.5">{treatment.price}</td><td className="p-1.5">{treatment.payment}</td><td className="p-1.5">{treatment.notes}</td>
+                                    </tr>
+                                  ))}</tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </details>
+                      )}
+                      {c.ophthalmologyDetails && (
+                        <details className="rounded-lg border border-sky-900/60 bg-slate-900 p-3">
+                          <summary className="cursor-pointer font-bold text-sky-300">Dossier ophtalmologique · examen OD / OS</summary>
+                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-slate-300">
+                            <p><strong>Acuité OD / OS :</strong> {c.ophthalmologyDetails.visualAcuityOD || '—'} / {c.ophthalmologyDetails.visualAcuityOS || '—'}</p>
+                            <p><strong>PIO OD / OS :</strong> {c.ophthalmologyDetails.intraocularPressureOD || '—'} / {c.ophthalmologyDetails.intraocularPressureOS || '—'} mmHg</p>
+                            <p><strong>Réfraction OD :</strong> SPH {c.ophthalmologyDetails.refractionOD.sphere}, CYL {c.ophthalmologyDetails.refractionOD.cylinder}, AXIS {c.ophthalmologyDetails.refractionOD.axis}, ADD {c.ophthalmologyDetails.refractionOD.add}, PD {c.ophthalmologyDetails.refractionOD.pd}</p>
+                            <p><strong>Réfraction OS :</strong> SPH {c.ophthalmologyDetails.refractionOS.sphere}, CYL {c.ophthalmologyDetails.refractionOS.cylinder}, AXIS {c.ophthalmologyDetails.refractionOS.axis}, ADD {c.ophthalmologyDetails.refractionOS.add}, PD {c.ophthalmologyDetails.refractionOS.pd}</p>
+                            <p><strong>Examen :</strong> Cornée {c.ophthalmologyDetails.cornea || '—'} · Iris {c.ophthalmologyDetails.iris || '—'} · Pupille {c.ophthalmologyDetails.pupil || '—'} · Cristallin {c.ophthalmologyDetails.lens || '—'} · Rétine {c.ophthalmologyDetails.retina || '—'} · Fond d'œil {c.ophthalmologyDetails.fundus || '—'}</p>
+                            <p><strong>Traitement :</strong> {c.ophthalmologyDetails.eyeDrops || '—'} · {c.ophthalmologyDetails.treatmentPlan || '—'} · Suivi {c.ophthalmologyDetails.followUp || '—'}</p>
+                          </div>
+                        </details>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -283,7 +283,7 @@ export const NetworkSettingsSection: React.FC<NetworkSettingsSectionProps> = ({ 
 
   const shareWhatsApp = () => {
     const url = getAssistantWebUrl();
-    const message = `مرحباً، هادا هو رابط الاتصال ببرنامج MediCab على شبكة الـ Wi-Fi للعيادة :\n\n${url}\n\nقم بفتحه في متصفح Chrome أو Safari على حاسوب المساعد بدون الحاجة لأي تثبيت.`;
+    const message = `مرحباً، هادا هو رابط الاتصال ببرنامج mediacabinet على شبكة الـ Wi-Fi للعيادة :\n\n${url}\n\nقم بفتحه في متصفح Chrome أو Safari على حاسوب المساعد بدون الحاجة لأي تثبيت.`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
   };
 

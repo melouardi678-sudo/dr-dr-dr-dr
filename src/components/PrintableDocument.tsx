@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   Printer,
   FileDown,
@@ -328,6 +328,15 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
     document.body.classList.remove('print-a4', 'print-a5');
     document.body.classList.add(paperSize === 'A4' ? 'print-a4' : 'print-a5');
 
+    const pageStyleId = 'medicab-print-page-size';
+    let pageStyle = document.getElementById(pageStyleId) as HTMLStyleElement | null;
+    if (!pageStyle) {
+      pageStyle = document.createElement('style');
+      pageStyle.id = pageStyleId;
+      document.head.appendChild(pageStyle);
+    }
+    pageStyle.textContent = `@page { size: ${paperSize} portrait; margin: ${paperSize === 'A5' ? '6mm' : '8mm'}; }`;
+
     return () => {
       document.body.classList.remove('print-a4', 'print-a5');
     };
@@ -554,37 +563,121 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
     return 'Document_Medical';
   };
 
-  const handleDirectPrint = async () => {
-    const title = getDocFileTitle();
-    const originalTitle = document.title;
+  const buildStandalonePrintHtml = (): string => {
+    const source = document.getElementById('printable-area');
+    if (!source) return '';
 
-    const electronApi = (window as any).electron;
-    if (electronApi) {
+    const clone = source.cloneNode(true) as HTMLElement;
+    const sourceElements = [source, ...Array.from(source.querySelectorAll('*'))] as HTMLElement[];
+    const cloneElements = [clone, ...Array.from(clone.querySelectorAll('*'))] as HTMLElement[];
+
+    sourceElements.forEach((sourceElement, index) => {
+      const cloneElement = cloneElements[index];
+      if (!cloneElement) return;
+
+      if (sourceElement instanceof HTMLInputElement && cloneElement instanceof HTMLInputElement) {
+        cloneElement.value = sourceElement.value;
+        cloneElement.checked = sourceElement.checked;
+      } else if (sourceElement instanceof HTMLTextAreaElement && cloneElement instanceof HTMLTextAreaElement) {
+        cloneElement.value = sourceElement.value;
+      } else if (sourceElement instanceof HTMLSelectElement && cloneElement instanceof HTMLSelectElement) {
+        cloneElement.value = sourceElement.value;
+      }
+    });
+
+    clone.querySelectorAll('[class*="print:hidden"]').forEach((element) => element.remove());
+
+    const inlineStyles: string[] = [];
+    const externalStylesheets: string[] = [];
+    Array.from(document.styleSheets).forEach((stylesheet) => {
       try {
-        const res = await (electronApi.printDocument
-          ? electronApi.printDocument({ pageSize: paperSize })
-          : electronApi.ipcRenderer.invoke('print-document', { pageSize: paperSize }));
+        inlineStyles.push(Array.from(stylesheet.cssRules).map((rule) => rule.cssText).join('\n'));
+      } catch (error) {
+        if (stylesheet.href) {
+          const href = stylesheet.href.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+          externalStylesheets.push(`<link rel="stylesheet" href="${href}">`);
+          console.warn(`Could not inline print stylesheet; retaining its link: ${stylesheet.href}`, error);
+        } else {
+          console.error('Could not read an inline print stylesheet:', error);
+        }
+      }
+    });
+
+    return `<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${getDocFileTitle()}</title>
+  ${externalStylesheets.join('\n')}
+  <style>
+    @page { size: ${paperSize} portrait; margin: 8mm; }
+    html, body { margin: 0; padding: 0; background: #fff !important; color: #0f172a; }
+    body { width: auto; min-height: ${paperSize === 'A5' ? '210mm' : '297mm'}; }
+    * { box-sizing: border-box; }
+    img { max-width: 100%; }
+    table { border-collapse: collapse; }
+    ${inlineStyles.join('\n')}
+  </style>
+</head>
+<body>${clone.outerHTML}</body>
+</html>`;
+  };
+
+  const handleDirectPrint = async () => {
+    const electronApi = (window as any).electron;
+    const standaloneHtml = buildStandalonePrintHtml();
+    if (electronApi?.printHtmlDocument && standaloneHtml) {
+      try {
+        const res = await electronApi.printHtmlDocument({
+          pageSize: paperSize,
+          html: standaloneHtml,
+        });
         if (res && res.success) {
           return;
         }
+        console.error('Electron HTML print error:', res?.error);
       } catch (e) {
         console.error('Electron print IPC error, falling back to browser print:', e);
       }
     }
 
-    document.title = title;
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        document.title = originalTitle;
-      }, 1000);
-    }, 100);
+    const printWindow = window.open('', '_blank', 'width=900,height=1100');
+    if (!printWindow) {
+      window.alert('Autorisez les fenêtres contextuelles pour imprimer ce document.');
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(standaloneHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
   };
 
   const handleDirectPDFDownload = async () => {
     setIsGeneratingPDF(true);
     const title = getDocFileTitle();
     const element = document.getElementById('printable-area');
+    const standaloneHtml = buildStandalonePrintHtml();
+
+    const electronApi = (window as any).electron;
+    if (electronApi?.exportHtmlPdf && standaloneHtml) {
+      try {
+        const res = await electronApi.exportHtmlPdf({
+          filename: `${title}_${paperSize}.pdf`,
+          pageSize: paperSize,
+          html: standaloneHtml,
+        });
+        setIsGeneratingPDF(false);
+        if (res?.success) return;
+        if (res?.canceled) return;
+        console.error('Electron PDF export error, falling back to HTML PDF:', res?.error);
+      } catch (err) {
+        console.error('Electron PDF export failed, falling back to HTML PDF:', err);
+      }
+    }
 
     if (element) {
       try {
@@ -645,14 +738,18 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
     }
 
     setIsGeneratingPDF(false);
-    const originalTitle = document.title;
-    document.title = `${title}.pdf`;
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        document.title = originalTitle;
-      }, 1000);
-    }, 100);
+    const printWindow = window.open('', '_blank', 'width=900,height=1100');
+    if (!printWindow) {
+      window.alert('Autorisez les fenêtres contextuelles pour exporter ou imprimer ce document.');
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(standaloneHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
   };
 
   // Color theme classes
@@ -717,7 +814,10 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
   }[fontSizeScale];
 
   return (
-    <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col print:bg-white print:block overflow-hidden">
+    <div
+      id="print-document-overlay"
+      className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col print:bg-white print:block overflow-hidden"
+    >
       {/* Hidden File Input for Logo Upload */}
       <input
         ref={fileInputRef}
@@ -1294,37 +1394,37 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
               {type === 'prescription' && editablePrescription && (
                 <div className="space-y-3.5">
                   {/* Patient & Date Bar */}
-                  <div className={`flex items-center justify-between ${themeClasses.badgeBg} p-2 rounded-lg border text-xs`}>
+                  <div className={`flex flex-wrap items-center justify-between gap-2 ${themeClasses.badgeBg} ${paperSize === 'A5' ? 'p-1.5 text-[11px] gap-1.5' : 'p-2 text-xs gap-2'} rounded-lg border min-w-0 max-w-full`}>
                     {printOpt.showPatientName && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-slate-600 font-medium">Patient : </span>
+                      <div className="flex items-center gap-1 min-w-0 max-w-full">
+                        <span className="text-slate-600 font-medium shrink-0">Patient : </span>
                         <EditableField
                           value={editablePrescription.patientName}
                           onChange={(val) => setEditablePrescription({ ...editablePrescription, patientName: val })}
-                          className="font-bold text-slate-950 uppercase"
+                          className="font-bold text-slate-950 uppercase min-w-0 max-w-full"
                           placeholder="Nom du patient"
                         />
                       </div>
                     )}
                     {printOpt.showAge && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <span className="text-slate-600 font-medium">Âge : </span>
                         <EditableField
                           value={editablePrescription.patientAge}
                           onChange={(val) => setEditablePrescription({ ...editablePrescription, patientAge: Number(val) || 0 })}
-                          className="font-bold text-slate-950 font-mono w-12"
+                          className={`font-bold text-slate-950 font-mono ${paperSize === 'A5' ? 'w-9' : 'w-12'}`}
                           placeholder="Âge"
                         />
                         <span>ans</span>
                       </div>
                     )}
                     {printOpt.showDate && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-slate-600 font-medium">Date : </span>
+                      <div className="flex items-center gap-1 min-w-0 max-w-full">
+                        <span className="text-slate-600 font-medium shrink-0">Date : </span>
                         <EditableField
                           value={editablePrescription.date || ''}
                           onChange={(val) => setEditablePrescription({ ...editablePrescription, date: val })}
-                          className="font-bold text-slate-950"
+                          className={`font-bold text-slate-950 min-w-0 ${paperSize === 'A5' ? 'max-w-[95px] text-[11px]' : 'max-w-[120px]'}`}
                           placeholder="JJ/MM/AAAA"
                         />
                       </div>
@@ -1962,6 +2062,13 @@ export const PrintableDocument: React.FC<PrintableDocumentProps> = ({
                           onChange={(val) => setHeaderTexts((prev) => ({ ...prev, emailFr: val }))}
                           placeholder="email@cabinet.com"
                         />
+                      </span>
+                    )}
+                    {(settings.inpeNumber || settings.cabinetCity) && (
+                      <span className="flex items-center gap-1 font-mono">
+                        {settings.inpeNumber && <strong>N° INPE : {settings.inpeNumber}</strong>}
+                        {settings.inpeNumber && settings.cabinetCity && <span>•</span>}
+                        {settings.cabinetCity && <span>{settings.cabinetCity}</span>}
                       </span>
                     )}
                   </div>

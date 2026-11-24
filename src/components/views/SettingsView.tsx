@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Save, CheckCircle2, Globe, Moon, Sun, Upload, Shield, Info, ExternalLink, Lock, Mail, AlertCircle, Users, Key, Building, Wifi, Printer } from 'lucide-react';
+import { Settings, Save, CheckCircle2, Globe, Moon, Sun, Upload, Shield, Info, ExternalLink, Lock, Mail, AlertCircle, Users, Key, Building, Wifi, Printer, Plus, Trash2, ReceiptText } from 'lucide-react';
 import { Logo } from '../Logo';
 import { CabinetSettings, AppUser } from '../../types';
 import { loadLicenseInfo, getLicenseStatus } from '../../utils/license';
@@ -7,6 +7,7 @@ import { hashPasswordWithSalt, generateSalt } from '../../utils/auth';
 import { StaffManagementSection } from '../StaffManagementSection';
 import { NetworkSettingsSection } from '../NetworkSettingsSection';
 import { PrescriptionPrintSettingsSection } from '../PrescriptionPrintSettingsSection';
+import { MEDICAL_SPECIALTY_OPTIONS, buildSpecialtyManagement, getSpecialtyCategory } from '../../utils/medicalSpecialties';
 
 interface SettingsViewProps {
   settings: CabinetSettings;
@@ -25,9 +26,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   currentUser,
   onUpdateUser,
 }) => {
-  const [settingsTab, setSettingsTab] = useState<'cabinet' | 'print' | 'staff' | 'network'>('cabinet');
+  const [settingsTab, setSettingsTab] = useState<'cabinet' | 'specialties' | 'print' | 'staff' | 'network'>('cabinet');
   const [formData, setFormData] = useState<CabinetSettings>(settings);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [newActName, setNewActName] = useState('');
+  const [newActPrice, setNewActPrice] = useState(0);
 
   // Account settings state
   const [accountEmail, setAccountEmail] = useState(currentUser?.email || '');
@@ -132,6 +135,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
 
           <button
+            onClick={() => setSettingsTab('specialties')}
+            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 ${
+              settingsTab === 'specialties'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            <span>Gestion des Spécialités Médicales</span>
+          </button>
+
+          <button
             onClick={() => setSettingsTab('print')}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-2 ${
               settingsTab === 'print'
@@ -169,7 +184,129 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {settingsTab === 'print' ? (
+      {settingsTab === 'specialties' ? (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-xl">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-bold text-white">Gestion des Spécialités Médicales</h2>
+              <p className="text-xs text-slate-400">Choisissez la spécialité active, activez les modules et configurez les accès par utilisateur.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const specialtyManagement = buildSpecialtyManagement(formData);
+                const enabledSpecialties = specialtyManagement.enabledSpecialties.includes(formData.speciality)
+                  ? specialtyManagement.enabledSpecialties
+                  : [...specialtyManagement.enabledSpecialties, formData.speciality];
+                const nextSettings = {
+                  ...formData,
+                  speciality: formData.speciality || 'Médecine Générale',
+                  specialtyCategory: getSpecialtyCategory(formData.speciality),
+                  specialtyManagement: {
+                    ...specialtyManagement,
+                    defaultSpecialty: formData.speciality,
+                    activeSpecialty: formData.speciality,
+                    enabledSpecialties,
+                  },
+                };
+                onSaveSettings(nextSettings);
+                setFormData(nextSettings);
+              }}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-bold text-xs shadow-md"
+            >
+              Sauvegarder la configuration
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="space-y-3 p-4 bg-slate-950 border border-slate-800 rounded-xl">
+              <label className="block font-semibold text-slate-300 text-xs">Spécialité active (appliquée après sauvegarde)</label>
+              <select
+                value={formData.speciality || 'Médecine Générale'}
+                onChange={(e) => {
+                  const specialtyCategory = getSpecialtyCategory(e.target.value);
+                  const current = buildSpecialtyManagement(formData);
+                  const next = {
+                    ...formData,
+                    speciality: e.target.value,
+                    specialtyCategory,
+                    specialtyManagement: {
+                      ...current,
+                      defaultSpecialty: e.target.value,
+                      activeSpecialty: e.target.value,
+                      enabledSpecialties: current.enabledSpecialties.includes(e.target.value)
+                        ? current.enabledSpecialties
+                        : [...current.enabledSpecialties, e.target.value],
+                    },
+                  };
+                  setFormData(next);
+                }}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs"
+              >
+                <optgroup label="Médecine Générale">
+                  {MEDICAL_SPECIALTY_OPTIONS.filter((option) => option.category === 'general').map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Dentisterie">
+                  {MEDICAL_SPECIALTY_OPTIONS.filter((option) => option.category === 'dental').map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Ophtalmologie">
+                  {MEDICAL_SPECIALTY_OPTIONS.filter((option) => option.category === 'ophthalmology').map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </optgroup>
+              </select>
+
+              <p className="text-[11px] text-slate-500">
+                Interface : {formData.specialtyCategory === 'dental' ? 'Dentisterie' : formData.specialtyCategory === 'ophthalmology' ? 'Ophtalmologie' : 'Médecine générale'}
+              </p>
+            </div>
+
+            <div className="space-y-3 p-4 bg-slate-950 border border-slate-800 rounded-xl">
+              <h3 className="font-bold text-sm text-white">Spécialités actives</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[320px] overflow-y-auto pr-1">
+                {MEDICAL_SPECIALTY_OPTIONS.map((option) => {
+                  const isEnabled = (formData.specialtyManagement?.enabledSpecialties || buildSpecialtyManagement(formData).enabledSpecialties).includes(option.id);
+                  return (
+                    <label key={option.id} className="flex items-center gap-2 text-xs text-slate-300 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5">
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => {
+                          const current = buildSpecialtyManagement(formData);
+                          const nextEnabled = isEnabled
+                            ? current.enabledSpecialties.filter((value) => value !== option.id)
+                            : [...current.enabledSpecialties, option.id];
+                          const nextSpecialty = nextEnabled.includes(current.activeSpecialty)
+                            ? current.activeSpecialty
+                            : nextEnabled[0] || 'Médecine Générale';
+                          const next = {
+                            ...formData,
+                            speciality: nextSpecialty,
+                            specialtyCategory: getSpecialtyCategory(nextSpecialty),
+                            specialtyManagement: {
+                              ...current,
+                              enabledSpecialties: nextEnabled,
+                              defaultSpecialty: nextSpecialty,
+                              activeSpecialty: nextSpecialty,
+                            },
+                          };
+                          setFormData(next);
+                        }}
+                        className="rounded border-slate-600 bg-slate-950"
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : settingsTab === 'print' ? (
         <PrescriptionPrintSettingsSection
           settings={settings}
           onSaveSettings={onSaveSettings}
@@ -213,13 +350,60 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Spécialité Médicale</label>
+                <label className="block font-semibold text-slate-300 mb-1">
+                  N° INPE <span className="text-emerald-400">(Identifiant National des Professionnels de Santé)</span>
+                </label>
                 <input
                   type="text"
-                  value={formData.speciality}
-                  onChange={(e) => setFormData({ ...formData, speciality: e.target.value })}
+                  inputMode="numeric"
+                  maxLength={9}
+                  value={formData.inpeNumber || ''}
+                  onChange={(e) => setFormData({ ...formData, inpeNumber: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                  placeholder="084291853"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono"
+                />
+                <p className="mt-1 text-[10px] text-slate-500">{(formData.inpeNumber || '').length}/9 caractères</p>
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Ville du cabinet</label>
+                <input
+                  type="text"
+                  value={formData.cabinetCity || ''}
+                  onChange={(e) => setFormData({ ...formData, cabinetCity: e.target.value })}
+                  placeholder="Casablanca"
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Spécialité Médicale</label>
+                <select
+                  value={formData.speciality}
+                  onChange={(e) => {
+                    const specialtyCategory = getSpecialtyCategory(e.target.value);
+                    const current = buildSpecialtyManagement(formData);
+                    setFormData({
+                      ...formData,
+                      speciality: e.target.value,
+                      specialtyCategory,
+                      specialtyManagement: {
+                        ...current,
+                        defaultSpecialty: e.target.value,
+                        activeSpecialty: e.target.value,
+                        enabledSpecialties: current.enabledSpecialties.includes(e.target.value)
+                          ? current.enabledSpecialties
+                          : [...current.enabledSpecialties, e.target.value],
+                      },
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
+                >
+                  {MEDICAL_SPECIALTY_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">Téléphone(s)</label>
@@ -240,6 +424,97 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
               />
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <ReceiptText className="w-4 h-4 text-emerald-400" />
+                <div>
+                  <h3 className="font-bold text-sm text-white">Actes et tarifs</h3>
+                  <p className="text-[10px] text-slate-500">Tarif proposé pour chaque facture, modifiable sur la feuille lors de l'impression.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {(formData.actTariffs || []).map((act) => (
+                  <div key={act.id} className="grid grid-cols-[1fr_120px_36px] gap-2 items-center">
+                    <input
+                      type="text"
+                      value={act.name}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        actTariffs: (formData.actTariffs || []).map((item) =>
+                          item.id === act.id ? { ...item, name: e.target.value } : item
+                        ),
+                      })}
+                      className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white"
+                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        value={act.price}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          actTariffs: (formData.actTariffs || []).map((item) =>
+                            item.id === act.id ? { ...item, price: Math.max(0, Number(e.target.value) || 0) } : item
+                          ),
+                        })}
+                        className="w-full px-3 py-2 pr-12 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-mono font-bold"
+                      />
+                      <span className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-400">{formData.currency}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({
+                        ...formData,
+                        actTariffs: (formData.actTariffs || []).filter((item) => item.id !== act.id),
+                      })}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950"
+                      title="Supprimer cet acte"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-[1fr_120px_90px] gap-2 items-center">
+                <input
+                  type="text"
+                  value={newActName}
+                  onChange={(e) => setNewActName(e.target.value)}
+                  placeholder="Nouvel acte (ex : Échographie pelvienne)"
+                  className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={newActPrice}
+                  onChange={(e) => setNewActPrice(Math.max(0, Number(e.target.value) || 0))}
+                  placeholder="Tarif"
+                  className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-emerald-400 font-mono font-bold"
+                />
+                <button
+                  type="button"
+                  disabled={!newActName.trim()}
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      actTariffs: [
+                        ...(formData.actTariffs || []),
+                        { id: `act_${Date.now()}`, name: newActName.trim(), price: newActPrice },
+                      ],
+                    });
+                    setNewActName('');
+                    setNewActPrice(0);
+                  }}
+                  className="h-[38px] px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Ajouter
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -457,7 +732,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* About Window Section */}
           {(() => {
-            const licenseText = 'Licence Illimitée (Permanente)';
+            const licenseInfo = loadLicenseInfo();
+            const licenseStatus = getLicenseStatus(licenseInfo);
+            const licenseText = licenseInfo.isActivated
+              ? 'Licence permanente activée'
+              : licenseStatus.statusText;
 
             return (
               <div className="pt-4 border-t border-slate-800 space-y-3">
@@ -474,7 +753,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="text-xs space-y-2.5 pt-3 border-t border-slate-800/80">
                     <p className="flex justify-between items-center">
                       <span className="text-slate-400 font-medium">Application :</span>
-                      <strong className="text-white font-black">MediCab</strong>
+                      <strong className="text-white font-black">mediacabinet</strong>
                     </p>
                     <p className="flex justify-between items-center">
                       <span className="text-slate-400 font-medium">Publisher :</span>

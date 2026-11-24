@@ -1,6 +1,6 @@
-# 🍎 دليل تشغيل وتثبيت برنامج MediCab على أجهزة Mac (macOS)
+# 🍎 دليل تشغيل وتثبيت برنامج mediacabinet على أجهزة Mac (macOS)
 
-تم تجهيز وتكييف برنامج **MediCab Medical Cabinet** ليعمل بشكل أصلي ومتوافق 100% مع بيئة نظام الماك (**macOS**)، بما في ذلك أجهزة **Apple Silicon (M1 / M2 / M3 / M4 / M5)** وكذلك أجهزة **Intel**.
+تم تجهيز وتكييف برنامج **mediacabinet** ليعمل بشكل أصلي ومتوافق 100% مع بيئة نظام الماك (**macOS**)، بما في ذلك أجهزة **Apple Silicon (M1 / M2 / M3 / M4 / M5)** وكذلك أجهزة **Intel**.
 
 ---
 
@@ -68,7 +68,7 @@ npm run electron:build:mac
 1. انقر بزر الفأرة الأيمن (Right-Click) على التطبيق واضغط على **Open (فتح)** ثم اضغط **Open**.
 2. أو من خلال Terminal نفّذ الأمر التالي لفك الحظر:
    ```bash
-   xattr -cr /Applications/MediCab\ Medical\ Cabinet.app
+   xattr -cr /Applications/mediacabinet.app
    ```
 
 ---
