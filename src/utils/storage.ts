@@ -1,4 +1,4 @@
-import {
+﻿import {
   AppUser,
   CabinetSettings,
   Patient,
@@ -268,21 +268,22 @@ export function setStoredData<T>(key: string, data: T): void {
   try {
     const netConfig = getNetworkConfig();
     const collection = KEY_TO_COLLECTION[key];
-    if (collection && netConfig.mode !== 'local') {
-      if (netConfig.mode === 'client') {
-        if (Array.isArray(data)) {
-          syncClient.saveBatch(collection, data).catch((err) => console.warn('[StorageSync] Batch save warning:', err));
-        } else {
-          syncClient.saveItem(collection, data).catch((err) => console.warn('[StorageSync] Item save warning:', err));
-        }
-      } else if (netConfig.mode === 'server') {
-        // The server workstation also writes to the central database. The API
-        // broadcasts the mutation to connected clients after persisting it.
-        if (Array.isArray(data)) {
-          syncClient.saveBatch(collection, data).catch((err) => console.warn('[StorageSync] Batch save warning:', err));
-        } else {
-          syncClient.saveItem(collection, data).catch((err) => console.warn('[StorageSync] Item save warning:', err));
-        }
+    const isLanHost =
+      typeof window !== 'undefined' &&
+      window.location &&
+      window.location.hostname &&
+      window.location.hostname !== '127.0.0.1' &&
+      window.location.hostname !== 'localhost';
+
+    const shouldSyncToCentral =
+      Boolean(collection) &&
+      (netConfig.mode === 'server' || netConfig.mode === 'client' || isLanHost);
+
+    if (shouldSyncToCentral && collection) {
+      if (Array.isArray(data)) {
+        syncClient.saveBatch(collection, data).catch((err) => console.warn('[StorageSync] Batch save warning:', err));
+      } else {
+        syncClient.saveItem(collection, data).catch((err) => console.warn('[StorageSync] Item save warning:', err));
       }
     }
   } catch (err) {
@@ -881,3 +882,4 @@ export function restoreFromJSON(jsonString: string): boolean {
     return false;
   }
 }
+
