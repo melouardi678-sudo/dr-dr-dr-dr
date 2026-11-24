@@ -1,3 +1,4 @@
+import { execFile } from "child_process";
 import express from "express";
 import http from "http";
 import path from "path";
@@ -20,6 +21,7 @@ function findAvailablePort(startPort: number): Promise<number> {
   return new Promise((resolve) => {
     const testServer = net.createServer();
     testServer.listen(startPort, "0.0.0.0", () => {
+  ensureWindowsFirewallRule(Number(startPort));
       testServer.close(() => resolve(startPort));
     });
     testServer.on("error", () => {
@@ -388,4 +390,22 @@ if (require.main === module) {
   startServer().catch((err) => {
     console.error("Fatal server error on startup:", err);
   });
+}
+
+function ensureWindowsFirewallRule(port: number) {
+if (process.platform !== "win32") return;
+const ruleName = `MediCab LAN Port ${port}`;
+const psScript = [
+`$exists = Get-NetFirewallRule -DisplayName '${ruleName}' -ErrorAction SilentlyContinue;`,
+`if (-not $exists) {`,
+`  New-NetFirewallRule -DisplayName '${ruleName}' -Direction Inbound -Protocol TCP -LocalPort ${port} -Action Allow -Profile Any -ErrorAction SilentlyContinue | Out-Null`,
+`}`
+].join(" ");
+
+execFile(
+"powershell.exe",
+["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", psScript],
+{ windowsHide: true },
+() => {}
+);
 }
