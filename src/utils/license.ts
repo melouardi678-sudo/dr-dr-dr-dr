@@ -1,13 +1,5 @@
-<<<<<<< HEAD
-﻿import { LicenseInfo } from '../types';
-import { safeGetItem, safeSetItem } from './safeStorage';
-
-const LICENSE_STORAGE_KEY = 'medicab_license_v1';
-const LAST_SEEN_KEY = '__eaccess_last_ts';
-const TRIAL_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
-export const ACTIVATION_CODE_HASH = 'fab0d48d4932c4ff171454683fd8834fb5d3bd43c49eb12d63f3d5ecbfaec972';
-=======
-﻿import { LicenseInfo, LicenseType } from '../types';
+export const ACTIVATION_CODE_HASH = 'MEDIACAB-11M23-2027-19O92';
+import { LicenseInfo, LicenseType } from '../types';
 import { safeGetItem, safeSetItem, safeRemoveItem } from './safeStorage';
 
 const LICENSE_STORAGE_KEY = 'medicab_license_v1';
@@ -25,7 +17,6 @@ function isAssistantWebClient(): boolean {
   const hasElectronBridge = Boolean((window as any).electronAPI || (window as any).process?.versions?.electron);
   return !ua.includes('electron') && !hasElectronBridge;
 }
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
 
 export function getMachineId(): string {
   let stored = safeGetItem('medicab_machine_id');
@@ -60,26 +51,6 @@ export function getClientId(machineId?: string): string {
   return stored;
 }
 
-<<<<<<< HEAD
-export async function verifyActivationCode(code: string): Promise<boolean> {
-  const normalizedCode = code.trim().toUpperCase();
-  if (!normalizedCode) {
-    return false;
-  }
-  if (!globalThis.crypto?.subtle) {
-    throw new Error('Web Crypto is unavailable');
-  }
-
-  const digest = await globalThis.crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(normalizedCode),
-  );
-  const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return hash === ACTIVATION_CODE_HASH;
-}
-
-function createTrialLicense(machineId: string, clientId: string, installDate = new Date().toISOString()): LicenseInfo {
-=======
 /**
  * Kept for compatibility with KeyGeneratorModal
  */
@@ -96,7 +67,6 @@ export function verifyActivationCode(_clientId: string, _machineId: string, code
 }
 
 function createPermanentLicense(machineId: string, clientId: string, installDate = new Date().toISOString()): LicenseInfo {
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
   return {
     machineId,
     clientId,
@@ -108,8 +78,6 @@ function createPermanentLicense(machineId: string, clientId: string, installDate
   };
 }
 
-<<<<<<< HEAD
-=======
 function createTrialLicense(machineId: string, clientId: string, installDate = new Date().toISOString()): LicenseInfo {
   const expiry = new Date(new Date(installDate).getTime() + TRIAL_DAYS_DURATION * 24 * 60 * 60 * 1000).toISOString();
   return {
@@ -127,18 +95,11 @@ function createTrialLicense(machineId: string, clientId: string, installDate = n
 /**
  * Load the local trial/license state and keep the machine identity stable.
  */
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
 export function loadLicenseInfo(): LicenseInfo {
   const machineId = getMachineId();
   const clientId = getClientId(machineId);
   const raw = safeGetItem(LICENSE_STORAGE_KEY);
 
-<<<<<<< HEAD
-  if (!raw) {
-    const initial = createTrialLicense(machineId, clientId);
-    saveLicenseInfo(initial);
-    safeSetItem(LAST_SEEN_KEY, String(Date.now()));
-=======
   // Assistant link opened via browser on LAN is always permanently activated
   if (isAssistantWebClient()) {
     return createPermanentLicense(machineId, clientId);
@@ -151,53 +112,21 @@ export function loadLicenseInfo(): LicenseInfo {
     const initial = createTrialLicense(machineId, clientId, nowIso);
     saveLicenseInfo(initial);
     safeSetItem(LAST_SEEN_KEY, nowIso);
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
     return initial;
   }
 
   try {
-    const saved = JSON.parse(raw) as Partial<LicenseInfo>;
+    const parsedSource = typeof rawMain === 'string' ? rawMain : '';
+    const saved = JSON.parse(parsedSource) as Partial<LicenseInfo>;
     const savedMachineId = typeof saved.machineId === 'string' ? saved.machineId : machineId;
     const savedClientId = typeof saved.clientId === 'string' ? saved.clientId : clientId;
+    const data: LicenseInfo = {
+      ...createTrialLicense(savedMachineId, savedClientId, nowIso),
+      ...saved,
+      machineId: savedMachineId,
+      clientId: savedClientId,
+    };
 
-<<<<<<< HEAD
-    if (
-      saved.isActivated === true &&
-      saved.licenseType === 'permanent' &&
-      saved.activationVersion === 2 &&
-      saved.activationCodeHash === ACTIVATION_CODE_HASH
-    ) {
-      return {
-        ...saved,
-        machineId,
-        clientId,
-        cabinetName: saved.cabinetName || 'Cabinet Médical',
-        installDate: saved.installDate || new Date().toISOString(),
-        trialDays: 0,
-        isActivated: true,
-        licenseType: 'permanent',
-        activationCodeHash: ACTIVATION_CODE_HASH,
-        activationVersion: 2,
-      };
-    }
-
-    if (saved.isActivated === false && saved.licenseType === 'trial' && saved.installDate) {
-      return {
-        ...createTrialLicense(machineId, clientId, saved.installDate),
-        cabinetName: saved.cabinetName || 'Cabinet Médical',
-      };
-    }
-
-    const migratedTrial = createTrialLicense(savedMachineId, savedClientId);
-    saveLicenseInfo(migratedTrial);
-    safeSetItem(LAST_SEEN_KEY, String(Date.now()));
-    return migratedTrial;
-  } catch {
-    const resetTrial = createTrialLicense(machineId, clientId);
-    saveLicenseInfo(resetTrial);
-    safeSetItem(LAST_SEEN_KEY, String(Date.now()));
-    return resetTrial;
-=======
     if (!data.installDate) {
       data.installDate = nowIso;
     }
@@ -225,7 +154,6 @@ export function loadLicenseInfo(): LicenseInfo {
     saveLicenseInfo(reset);
     safeSetItem(LAST_SEEN_KEY, nowIso);
     return reset;
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
   }
 }
 
@@ -233,8 +161,6 @@ export function saveLicenseInfo(info: LicenseInfo): void {
   safeSetItem(LICENSE_STORAGE_KEY, JSON.stringify(info));
 }
 
-<<<<<<< HEAD
-=======
 export function resetLocalLicense(): void {
   safeRemoveItem(LICENSE_STORAGE_KEY);
   safeRemoveItem(LAST_SEEN_KEY);
@@ -242,7 +168,6 @@ export function resetLocalLicense(): void {
   safeRemoveItem('medicab_client_id');
 }
 
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
 export interface LicenseStatus {
   isExpired: boolean;
   daysRemaining: number;
@@ -251,49 +176,12 @@ export interface LicenseStatus {
 }
 
 export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
-<<<<<<< HEAD
-  if (
-    info.isActivated &&
-    info.licenseType === 'permanent' &&
-    info.activationVersion === 2 &&
-    info.activationCodeHash === ACTIVATION_CODE_HASH
-  ) {
-=======
   // Always active on Assistant web browser or when permanently activated
   if (isAssistantWebClient() || (info.isActivated && info.licenseType === 'permanent')) {
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
     return {
       isExpired: false,
       daysRemaining: 9999,
       hoursRemaining: 99999,
-<<<<<<< HEAD
-      statusText: 'Licence permanente activée',
-    };
-  }
-
-  const now = Date.now();
-  const installTime = Date.parse(info.installDate);
-  const lastSeen = Number(safeGetItem(LAST_SEEN_KEY));
-  const clockMovedBackwards = Number.isFinite(lastSeen) && lastSeen > 0 && now < lastSeen;
-  safeSetItem(LAST_SEEN_KEY, String(Number.isFinite(lastSeen) ? Math.max(lastSeen, now) : now));
-
-  const remainingMs = Number.isFinite(installTime)
-    ? installTime + TRIAL_DURATION_MS - now
-    : 0;
-  const isExpired = clockMovedBackwards || remainingMs <= 0;
-  const daysRemaining = Math.max(0, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
-  const hoursRemaining = Math.max(0, Math.ceil(remainingMs / (60 * 60 * 1000)));
-
-  return {
-    isExpired,
-    daysRemaining,
-    hoursRemaining,
-    statusText: isExpired
-      ? "Période d'essai terminée"
-      : `Essai gratuit : ${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`,
-  };
-}
-=======
       statusText: 'Licence Permanente Activée',
     };
   }
@@ -326,4 +214,4 @@ export function getLicenseStatus(info: LicenseInfo): LicenseStatus {
     statusText: `Essai gratuit (${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''})`,
   };
 }
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
+

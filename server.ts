@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-import { execFile } from "child_process";
+import { execFile } from 'node:child_process';
 import express from "express";
-=======
-﻿import express from "express";
->>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
 import http from "http";
 import path from "path";
 import fs from "fs";
@@ -456,3 +452,5 @@ execFile(
 () => {}
 );
 }
+
+

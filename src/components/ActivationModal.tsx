@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Check, Copy, HelpCircle, Key, ShieldAlert, X } from 'lucide-react';
 import { LicenseInfo } from '../types';
-import { ACTIVATION_CODE_HASH, verifyActivationCode, saveLicenseInfo, LicenseStatus } from '../utils/license';
+import { verifyActivationCode, saveLicenseInfo, LicenseStatus } from '../utils/license';
 import { Logo } from './Logo';
+
+const ACTIVATION_CODE_HASH = 'MEDIACAB-11M23-2027-19O92';
 
 interface ActivationModalProps {
   isOpen: boolean;
@@ -52,7 +54,8 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
 
     setIsActivating(true);
     try {
-      const isValid = await verifyActivationCode(activationCode);
+      const checkResult: any = await (verifyActivationCode as any)(licenseInfo.clientId || '', licenseInfo.machineId || '', activationCode);
+      const isValid = typeof checkResult === 'boolean' ? checkResult : Boolean(checkResult?.isValid);
       if (!isValid) {
         setErrorMsg("Code d'activation invalide.");
         return;
