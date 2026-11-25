@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   Users,
   Search,
@@ -33,6 +33,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { Patient, PatientDocument, ConsultationItem, CabinetSettings, AnalysisRequest, AppUser } from '../../types';
+import { syncClient } from '../../utils/syncClient';
 import { ExcelImportExportModal } from '../ExcelImportExportModal';
 
 interface PatientsViewProps {
@@ -279,6 +280,9 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
       setActivePatientId(updated[0]?.id || null);
     }
     setPatientToDelete(null);
+    syncClient.deleteItem('patients', id).catch((err) => {
+      console.warn('[PatientsView] Delete sync warning:', err);
+    });
   };
 
   const handleAddDocument = (e: React.FormEvent) => {

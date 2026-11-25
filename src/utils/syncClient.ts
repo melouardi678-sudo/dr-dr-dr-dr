@@ -1,4 +1,4 @@
-import { AppUser, ConnectionStatus, NetworkConfig, SyncEvent } from '../types';
+﻿import { AppUser, ConnectionStatus, NetworkConfig, SyncEvent } from '../types';
 import { getBaseApiUrl, getNetworkConfig, getWebSocketUrl } from './networkConfig';
 
 type StatusListener = (status: ConnectionStatus, message?: string) => void;
@@ -81,8 +81,13 @@ class SyncClient {
   public connect() {
     const config = getNetworkConfig();
 
-    // 1. In Local Mode: The application runs self-contained without needing a remote socket
-    if (config.mode === 'local') {
+    // 1. If opened in a browser (LAN Assistant / Multi-client), always connect to WebSocket /api/ws
+    const isBrowserClient = typeof window !== 'undefined' &&
+      !(window as any).electronAPI &&
+      !(window as any).process?.versions?.electron &&
+      !(window.navigator?.userAgent || '').toLowerCase().includes('electron');
+
+    if (config.mode === 'local' && !isBrowserClient) {
       this.disconnect();
       this.setStatus('connected', 'Mode Local Autonome');
       return;

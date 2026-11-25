@@ -1,10 +1,15 @@
+<<<<<<< HEAD
 import { execFile } from "child_process";
 import express from "express";
+=======
+﻿import express from "express";
+>>>>>>> 39eb84e (Configure macOS build workflow for Apple Silicon and Intel)
 import http from "http";
 import path from "path";
 import fs from "fs";
 import os from "os";
 import net from "net";
+import { exec } from "child_process";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { centralDb } from "./server/centralDb";
@@ -32,17 +37,31 @@ function findAvailablePort(startPort: number): Promise<number> {
 
 let isServerStarting = false;
 
+function ensureNetworkAndFirewall(port: number) {
+  if (process.platform !== "win32") return;
+  const ruleName = `MediCabPort${port}`;
+  const psScript = "Get-NetConnectionProfile | Where-Object { $_.NetworkCategory -ne 'Private' } | Set-NetConnectionProfile -NetworkCategory Private; netsh advfirewall firewall delete rule name='" + ruleName + "'; netsh advfirewall firewall add rule name='" + ruleName + "' dir=in action=allow protocol=TCP localport=" + port + " profile=any";
+  exec(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript}"`, (err) => {
+    if (err) {
+      console.warn("[Network Warning] Admin privileges required for auto firewall/network setup:", err.message);
+    } else {
+      console.log(`[Network OK] Network set to Private & Firewall port ${port} opened.`);
+    }
+  });
+}
+
 export async function startServer() {
   if (isServerStarting) return;
   isServerStarting = true;
 
   const app = express();
-  const initialPort = Number(process.env.PORT) || 3000;
-  const activePort = await findAvailablePort(initialPort);
+  const initialPort = 3001;
+  const activePort = 3001;
 
   // LAN CORS Configuration
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
+    res.header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-User-Role, X-User-Id, X-User-Name");
     if (req.method === "OPTIONS") {
@@ -171,6 +190,8 @@ export async function startServer() {
     }
   });
 
+  const recentlyDeletedIds = new Map<string, number>();
+
   app.post("/api/data/batch/:collection", (req, res) => {
     const collectionName = req.params.collection as any;
     const caller = getCallerUser(req);
@@ -183,10 +204,34 @@ export async function startServer() {
     }
 
     try {
-      centralDb.setCollection(collectionName, items);
-      centralDb.addAuditLog(`BATCH_UPDATE_${collectionName.toUpperCase()}`, `Mise à jour par lot de ${collectionName} (${Array.isArray(items) ? items.length : 1} éléments)`, caller, caller.ip);
-      wsSyncServer.broadcast({ type: 'sync:mutation', entity: collectionName, action: 'refresh', data: items, sender: { userId: caller.id, userName: caller.fullName, role: caller.role } });
-      res.json({ success: true, count: Array.isArray(items) ? items.length : 1 });
+      let finalItems = items;
+      if (Array.isArray(items)) {
+        const existing = centralDb.getCollection(collectionName);
+        if (Array.isArray(existing) && existing.length > 0 && items.every((it: any) => it && typeof it === 'object' && it.id)) {
+          const mergedMap = new Map<string, any>();
+          for (const oldItem of existing) {
+            const delKey = `${collectionName}:${oldItem?.id}`;
+            const deletedAt = recentlyDeletedIds.get(delKey);
+            if (deletedAt && (Date.now() - deletedAt) < 120000) continue;
+            if (oldItem && oldItem.id) {
+              mergedMap.set(String(oldItem.id), oldItem);
+            }
+          }
+          for (const incomingItem of items) {
+            if (incomingItem && incomingItem.id) {
+              const idKey = String(incomingItem.id);
+              const prev = mergedMap.get(idKey);
+              mergedMap.set(idKey, prev ? { ...prev, ...incomingItem } : incomingItem);
+            }
+          }
+          finalItems = Array.from(mergedMap.values());
+        }
+      }
+
+      centralDb.setCollection(collectionName, finalItems);
+      centralDb.addAuditLog(`BATCH_UPDATE_${collectionName.toUpperCase()}`, `Mise à jour par lot de ${collectionName} (${Array.isArray(finalItems) ? finalItems.length : 1} éléments)`, caller, caller.ip);
+      wsSyncServer.broadcast({ type: 'sync:mutation', entity: collectionName, action: 'refresh', data: finalItems, sender: { userId: caller.id, userName: caller.fullName, role: caller.role } });
+      res.json({ success: true, count: Array.isArray(finalItems) ? finalItems.length : 1, items: finalItems });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -273,6 +318,7 @@ export async function startServer() {
         const filtered = current.filter((it) => it.id !== id);
         if (filtered.length === current.length) return res.status(404).json({ error: `Élément avec l'ID ${id} introuvable` });
 
+        recentlyDeletedIds.set(`${collectionName}:${id}`, Date.now());
         centralDb.setCollection(collectionName, filtered);
         centralDb.addAuditLog(`DELETE_${collectionName.toUpperCase()}`, `Suppression dans ${collectionName}: ${id}`, caller, caller.ip);
         wsSyncServer.broadcast({ type: 'sync:mutation', entity: collectionName, action: 'delete', data: { id }, sender: { userId: caller.id, userName: caller.fullName, role: caller.role } });
@@ -370,6 +416,7 @@ export async function startServer() {
     wsSyncServer.initialize(httpServer);
 
     httpServer.listen(activePort, "0.0.0.0", () => {
+      ensureNetworkAndFirewall(activePort);
       const primaryIp = getPrimaryLocalIp();
       console.log(`====================================================`);
       console.log(`[MediCab Central Server] Running on port ${activePort}`);

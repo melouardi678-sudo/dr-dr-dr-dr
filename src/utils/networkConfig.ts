@@ -1,11 +1,11 @@
-import { NetworkConfig, NetworkDiagnostics } from '../types';
+﻿import { NetworkConfig, NetworkDiagnostics } from '../types';
 
 const NETWORK_CONFIG_KEY = 'medicab_network_config';
 
 const DEFAULT_CONFIG: NetworkConfig = {
   mode: 'local',
   serverIp: '127.0.0.1',
-  serverPort: 3000,
+  serverPort: 3001,
   autoDiscovery: true,
 };
 
@@ -87,14 +87,14 @@ export function getBaseApiUrl(config?: NetworkConfig): string {
   const cfg = config || getNetworkConfig();
   if (cfg.mode === 'client') {
     const cleanIp = cfg.serverIp.trim() || '127.0.0.1';
-    const port = cfg.serverPort || 3000;
+    const port = cfg.serverPort || 3001;
     return `http://${cleanIp}:${port}`;
   }
   // Local or Server mode uses the actual server port, which may differ from 3000.
   if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
     return window.location.origin;
   }
-  return 'http://127.0.0.1:3000';
+  return 'http://127.0.0.1:3001';
 }
 
 export function getLocalServerPort(fallbackPort = 3000): number {
@@ -109,7 +109,7 @@ export function getWebSocketUrl(config?: NetworkConfig): string {
   const cfg = config || getNetworkConfig();
   if (cfg.mode === 'client') {
     const cleanIp = cfg.serverIp.trim() || '127.0.0.1';
-    const port = cfg.serverPort || 3000;
+    const port = cfg.serverPort || 3001;
     return `ws://${cleanIp}:${port}/api/ws`;
   }
   const host = window.location.host;

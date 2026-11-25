@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Logo } from './Logo';
 import {
   LayoutDashboard,
@@ -44,6 +44,9 @@ interface SidebarProps {
   activeTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   userRole: UserRole;
+  onOpenActivation?: () => void;
+  licenseStatusText?: string;
+  isLicenseActivated?: boolean;
   waitingPatientsCount: number;
   lowStockCount: number;
   language?: Language;
@@ -55,6 +58,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   userRole,
+  onOpenActivation,
+  licenseStatusText,
+  isLicenseActivated,
   waitingPatientsCount,
   lowStockCount,
   language = 'fr',
@@ -175,6 +181,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </div>
+        {/* License & Activation button (available from Day 1) */}
+        {onOpenActivation && (
+          <div className="px-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                onOpenActivation();
+                onClose();
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-semibold border transition ${
+                isLicenseActivated
+                  ? 'bg-emerald-950/50 text-emerald-300 border-emerald-700/40 hover:bg-emerald-900/50'
+                  : 'bg-amber-950/50 text-amber-300 border-amber-600/50 hover:bg-amber-900/50'
+              }`}
+            >
+              <span className="truncate">{licenseStatusText || 'Licence / Activation'}</span>
+              <span className="text-[10px] underline shrink-0 ml-1">
+                {isLicenseActivated ? 'Détails' : 'Activer'}
+              </span>
+            </button>
+          </div>
+        )}
+
 
         {/* Footer info box */}
         <div className="p-3 m-2 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 space-y-1">

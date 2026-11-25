@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -184,7 +184,7 @@ export default function App() {
 
       // A WebSocket mutation is only a notification. Reload the changed
       // collection from the central database before refreshing React state.
-      if (event.entity && networkMode !== 'local') {
+      if (event.entity) {
         await syncCollectionFromCentralServer(event.entity);
       }
 
@@ -522,6 +522,9 @@ export default function App() {
             setIsMobileMenuOpen(false);
           }}
           userRole={currentUser.role}
+          onOpenActivation={() => setIsActivationOpen(true)}
+          licenseStatusText={licenseStatus.statusText}
+          isLicenseActivated={licenseInfo.isActivated && licenseInfo.licenseType === 'permanent'}
           waitingPatientsCount={waitingPatientsCount}
           lowStockCount={lowStockCount}
           isOpen={isMobileMenuOpen}
